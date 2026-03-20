@@ -12,7 +12,7 @@
       <router-view />
     </div>
 
-    <van-tabbar v-if="showTabBar" v-model="activeTab" @change="onTabChange">
+    <van-tabbar v-if="showTabBar" v-model="activeTab" @change="onTabChange" fixed placeholder>
       <van-tabbar-item
         v-for="item in tabBarItems"
         :key="item.path"
@@ -42,8 +42,8 @@ const userStore = useUserStore()
 
 const tabBarItems = computed(() => {
   const baseItems = [
-    { path: '/dashboard', label: '首页', icon: 'home-o' },
-    { path: '/task', label: '任务', icon: 'task-o' },
+    { path: '/dashboard', label: '首页', icon: 'wap-home-o' },
+    { path: '/task', label: '任务', icon: 'orders-o' },
     { path: '/reward', label: '奖励', icon: 'gift-o' },
     { path: '/family', label: '家庭', icon: 'friends-o' },
     { path: '/profile', label: '我的', icon: 'user-o' }
@@ -81,6 +81,6 @@ onBeforeRouteUpdate((to) => {
   background-color: #f5f5f5;
 }
 .mobile-content.has-tabbar {
-  padding-bottom: 60px;
+  padding-bottom: 70px;
 }
 </style>
