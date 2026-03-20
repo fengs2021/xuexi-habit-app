@@ -8,12 +8,8 @@ export function loginParent(data) {
   return request({ url: '/auth/login/parent', method: 'POST', data })
 }
 
-export function loginChildDevice(data) {
+export function loginChild(data) {
   return request({ url: '/auth/login/device', method: 'POST', data })
-}
-
-export function registerChild(data) {
-  return request({ url: '/auth/register/child', method: 'POST', data })
 }
 
 export function getUserInfo() {

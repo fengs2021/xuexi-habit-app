@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { loginParent, loginChildDevice, getUserInfo } from '@/api/auth'
+import { loginParent, loginChild, getUserInfo } from '@/api/auth'
 import { setToken, removeToken } from '@/utils/auth'
 import { ROLES } from '@/utils/permission'
 
@@ -10,9 +10,9 @@ export const useUserStore = defineStore('user', {
     roles: []
   }),
   getters: {
-    isAdmin: (state) => state.roles.includes(ROLES.ADMIN),
-    isChild: (state) => state.roles.includes(ROLES.CHILD),
-    isLogin: (state) => !!state.token
+    isAdmin: state => state.roles.includes(ROLES.ADMIN),
+    isChild: state => state.roles.includes(ROLES.CHILD),
+    isLogin: state => !!state.token
   },
   actions: {
     async loginParentAction(data) {
@@ -24,7 +24,7 @@ export const useUserStore = defineStore('user', {
       return res
     },
     async loginChildAction(data) {
-      const res = await loginChildDevice(data)
+      const res = await loginChild(data)
       this.token = res.token
       this.userInfo = res.user
       this.roles = [res.user.role]

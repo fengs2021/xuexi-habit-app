@@ -1,6 +1,6 @@
 import request from './request'
 
-export function getTaskList(params) {
+export function getTasks(params) {
   return request({ url: '/tasks', method: 'GET', params })
 }
 
@@ -14,8 +14,4 @@ export function completeTask(id) {
 
 export function skipTask(id) {
   return request({ url: '/tasks/' + id + '/skip', method: 'POST' })
-}
-
-export function deleteTask(id) {
-  return request({ url: '/tasks/' + id, method: 'DELETE' })
 }

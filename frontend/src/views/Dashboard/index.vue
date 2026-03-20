@@ -1,157 +1,111 @@
 <template>
   <div class="dashboard">
-    <el-row :gutter="20">
-      <el-col :span="24">
-        <el-card class="welcome-card">
-          <div class="welcome-content">
-            <div class="welcome-text">
-              <h2>欢迎回来，{{ userStore.userInfo?.nickname }}！</h2>
-              <p class="role-tag">{{ userStore.isAdmin ? '家长' : '学生' }}</p>
-            </div>
-            <div class="stars-display">
-              <span class="stars-icon">⭐</span>
-              <span class="stars-count">{{ familyInfo?.members?.[0]?.stars || 0 }}</span>
-              <span class="stars-label">星星</span>
-            </div>
+    <van-cell-group inset>
+      <van-cell>
+        <template #title>
+          <div class="welcome">
+            <span>欢迎回来，{{ userStore.userInfo?.nickname }}！</span>
+            <van-tag v-if="userStore.isAdmin" type="primary">家长</van-tag>
+            <van-tag v-else type="success">学生</van-tag>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </template>
+      </van-cell>
+    </van-cell-group>
 
-    <el-row :gutter="20" class="stats-row">
-      <el-col :span="8">
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <el-icon class="stat-icon" color="#67C23A"><List /></el-icon>
-            <div class="stat-info">
-              <div class="stat-value">{{ taskStats.total }}</div>
-              <div class="stat-label">总任务</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <el-icon class="stat-icon" color="#409EFF"><Check /></el-icon>
-            <div class="stat-info">
-              <div class="stat-value">{{ taskStats.completed }}</div>
-              <div class="stat-label">已完成</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card class="stat-card">
-          <div class="stat-content">
-            <el-icon class="stat-icon" color="#F56C6C"><Close /></el-icon>
-            <div class="stat-info">
-              <div class="stat-value">{{ taskStats.pending }}</div>
-              <div class="stat-label">待审批</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <van-cell-group inset class="stars-card">
+      <van-cell title="我的星星" :value="(userStore.userInfo?.stars || 0) + ' ★'" />
+    </van-cell-group>
 
-    <el-row :gutter="20">
-      <el-col :span="24">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>快捷操作</span>
-            </div>
-          </template>
-          <div class="quick-actions">
-            <el-button type="primary" @click="router.push('/task')">任务管理</el-button>
-            <el-button type="success" @click="router.push('/reward')">奖励兑换</el-button>
-            <el-button v-if="userStore.isAdmin" type="warning" @click="router.push('/exchange')">审批兑换</el-button>
-            <el-button type="info" @click="router.push('/family')">家庭管理</el-button>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <van-cell-group inset title="今日任务">
+      <TaskCard
+        v-for="task in tasks"
+        :key="task.id"
+        :task="task"
+        @complete="handleComplete"
+        @skip="handleSkip"
+      />
+      <EmptyState v-if="!loading && tasks.length === 0" description="今日无任务，休息一下吧！" />
+    </van-cell-group>
 
-    <el-row :gutter="20" class="recent-row">
-      <el-col :span="24">
-        <el-card>
-          <template #header>
-            <div class="card-header">
-              <span>Recent Tasks</span>
-            </div>
-          </template>
-          <el-table :data="recentTasks" style="width: 100%">
-            <el-table-column prop="title" label="任务名称" />
-            <el-table-column prop="starReward" label="奖励" width="80">
-              <template #default="{ row }">{{ row.starReward || row.star_reward }}⭐</template>
-            </el-table-column>
-            <el-table-column prop="rarity" label="稀有度" width="80">
-              <template #default="{ row }">
-                <el-tag :type="rarityType[row.rarity]">{{ row.rarity }}</el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-    </el-row>
+    <van-grid :column-num="4" class="shortcuts">
+      <van-grid-item icon="task-o" text="任务" to="/task" />
+      <van-grid-item icon="gift-o" text="奖励" to="/reward" />
+      <van-grid-item v-if="userStore.isAdmin" icon="records-o" text="审批" to="/exchange" />
+      <van-grid-item icon="friends-o" text="家庭" to="/family" />
+    </van-grid>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
-import { getTaskList } from '@/api/task'
+import { getTasks, completeTask, skipTask } from '@/api/task'
 import { getFamily } from '@/api/family'
+import TaskCard from '@/components/TaskCard.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import { showToast } from 'vant'
 
-const router = useRouter()
 const userStore = useUserStore()
+const tasks = ref([])
+const loading = ref(false)
 
-const familyInfo = ref(null)
-const recentTasks = ref([])
-
-const taskStats = computed(() => {
-  const list = recentTasks.value
-  return {
-    total: list.length,
-    completed: list.filter(t => t.isCompleted).length,
-    pending: list.filter(t => !t.isCompleted).length
+const loadTasks = async () => {
+  loading.value = true
+  try {
+    const data = await getTasks()
+    tasks.value = data || []
+  } catch (error) {
+    showToast('加载任务失败')
+  } finally {
+    loading.value = false
   }
-})
+}
 
-const rarityType = { N: 'info', R: '', SR: 'warning', SSR: 'danger' }
+const handleComplete = async (id) => {
+  try {
+    await completeTask(id)
+    showToast('任务完成！')
+    await loadTasks()
+    await userStore.getUserInfoAction()
+  } catch (error) {
+    showToast('操作失败')
+  }
+}
+
+const handleSkip = async (id) => {
+  try {
+    await skipTask(id)
+    showToast('已跳过')
+    await loadTasks()
+  } catch (error) {
+    showToast('操作失败')
+  }
+}
 
 onMounted(async () => {
-  try {
-    const [taskRes, familyRes] = await Promise.all([
-      getTaskList(),
-      getFamily()
-    ])
-    recentTasks.value = taskRes.slice(0, 5)
-    familyInfo.value = familyRes
-  } catch (e) {
-    console.error(e)
+  if (!userStore.userInfo) {
+    await userStore.getUserInfoAction()
   }
+  await loadTasks()
 })
 </script>
 
 <style scoped>
-.dashboard { padding: 20px; }
-.welcome-card { margin-bottom: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
-.welcome-content { display: flex; justify-content: space-between; align-items: center; }
-.welcome-text h2 { margin: 0 0 8px 0; font-size: 24px; }
-.role-tag { display: inline-block; padding: 4px 12px; background: rgba(255,255,255,0.2); border-radius: 20px; font-size: 12px; }
-.stars-display { text-align: center; }
-.stars-icon { font-size: 32px; display: block; }
-.stars-count { font-size: 36px; font-weight: bold; }
-.stars-label { font-size: 14px; opacity: 0.8; }
-.stats-row { margin: 20px 0; }
-.stat-card { text-align: center; }
-.stat-content { display: flex; align-items: center; justify-content: center; gap: 12px; }
-.stat-icon { font-size: 32px; }
-.stat-value { font-size: 28px; font-weight: bold; color: #303133; }
-.stat-label { font-size: 14px; color: #909399; }
-.card-header { font-weight: bold; }
-.quick-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-.recent-row { margin-top: 20px; }
+.dashboard {
+  padding-bottom: 20px;
+}
+.welcome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stars-card {
+  margin-top: 12px;
+}
+.shortcuts {
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 12px;
+  margin: 12px 16px;
+}
 </style>
