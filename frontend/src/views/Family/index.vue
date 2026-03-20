@@ -6,19 +6,27 @@
     </van-cell-group>
 
     <van-cell-group inset title="家庭成员">
-      <van-swipe-cell v-for="member in familyInfo?.members || []" :key="member.id">
-        <van-cell
-          :title="member.nickname"
-          :label="member.role === 'admin' ? '家长' : '学生'"
-        >
-          <template #right-icon>
+      <van-cell
+        v-for="member in familyInfo?.members || []"
+        :key="member.id"
+        :title="member.nickname"
+        :label="member.role === 'admin' ? '家长' : '学生'"
+      >
+        <template #right-icon>
+          <div class="member-actions">
             <span>{{ member.stars || 0 }} ★</span>
-          </template>
-        </van-cell>
-        <template #right v-if="userStore.isAdmin && member.id !== userStore.userInfo?.id">
-          <van-button square type="danger" text="删除" @click="removeMember(member)" />
+            <van-button 
+              v-if="userStore.isAdmin && member.id !== userStore.userInfo?.id" 
+              size="small" 
+              type="danger" 
+              plain
+              @click="removeMember(member)"
+            >
+              删除
+            </van-button>
+          </div>
         </template>
-      </van-swipe-cell>
+      </van-cell>
     </van-cell-group>
   </div>
 </template>
@@ -76,5 +84,10 @@ onMounted(async () => {
 <style scoped>
 .family-page {
   padding-bottom: 20px;
+}
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

@@ -123,10 +123,15 @@ export async function removeMember(ctx) {
       return
     }
 
+    // Delete related records first
+    await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1', [memberId])
+    await pool.query('DELETE FROM task_logs WHERE user_id = $1', [memberId])
+    await pool.query('DELETE FROM exchange_logs WHERE user_id = $1', [memberId])
     await pool.query('DELETE FROM users WHERE id = $1 AND family_id = $2', [memberId, decoded.familyId])
     ctx.body = success({})
   } catch (err) {
-    ctx.body = error(500, '移除成员失败')
+    console.error('RemoveMember error:', err)
+    ctx.body = error(500, '移除成员失败: ' + err.message)
   }
 }
 
