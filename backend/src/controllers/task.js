@@ -38,6 +38,55 @@ export async function getTasks(ctx) {
     )
     
     const tasks = result.rows
+    
+    // Calculate cycle start time for completion check
+    const now = new Date()
+    let cycleStart = new Date()
+    cycleStart.setHours(0, 0, 0, 0)
+    const dayOfWeek = now.getDay()
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - diff)
+    weekStart.setHours(0, 0, 0, 0)
+    
+    // Check completion status for each task
+    for (const task of tasks) {
+      let completedInCycle = false
+      let pendingApproval = false
+      
+      if (task.frequency === 'daily') {
+        const logResult = await pool.query(
+          'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 AND created_at >= $4 ORDER BY created_at DESC LIMIT 1',
+          [user.id, task.id, 'completed', cycleStart.toISOString()]
+        )
+        if (logResult.rows.length > 0) {
+          completedInCycle = true
+          pendingApproval = logResult.rows[0].approval_status === 'pending'
+        }
+      } else if (task.frequency === 'weekly') {
+        const logResult = await pool.query(
+          'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 AND created_at >= $4 ORDER BY created_at DESC LIMIT 1',
+          [user.id, task.id, 'completed', weekStart.toISOString()]
+        )
+        if (logResult.rows.length > 0) {
+          completedInCycle = true
+          pendingApproval = logResult.rows[0].approval_status === 'pending'
+        }
+      } else if (task.frequency === 'once') {
+        const logResult = await pool.query(
+          'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 ORDER BY created_at DESC LIMIT 1',
+          [user.id, task.id, 'completed']
+        )
+        if (logResult.rows.length > 0) {
+          completedInCycle = true
+          pendingApproval = logResult.rows[0].approval_status === 'pending'
+        }
+      }
+      
+      task.completed = completedInCycle
+      task.pendingApproval = pendingApproval
+    }
+    
     ctx.body = success({
       daily: tasks.filter(t => t.frequency === 'daily'),
       weekly: tasks.filter(t => t.frequency === 'weekly'),
@@ -80,7 +129,7 @@ export async function completeTask(ctx) {
   
   try {
     const taskResult = await pool.query(
-      'SELECT * FROM tasks WHERE id = $1 AND family_id = $2',
+      'SELECT * FROM tasks WHERE id =  AND family_id = ',
       [id, user.family_id]
     )
     
@@ -91,18 +140,50 @@ export async function completeTask(ctx) {
     
     const task = taskResult.rows[0]
     
+    // Check if already completed this cycle
+    const now = new Date()
+    let cycleStart = new Date()
+    
+    if (task.frequency === 'daily') {
+      cycleStart.setHours(0, 0, 0, 0)
+    } else if (task.frequency === 'weekly') {
+      const dayOfWeek = cycleStart.getDay()
+      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      cycleStart.setDate(cycleStart.getDate() - diff)
+      cycleStart.setHours(0, 0, 0, 0)
+    } else if (task.frequency === 'once') {
+      const onceCheck = await pool.query(
+        'SELECT * FROM task_logs WHERE user_id =  AND task_id =  AND action =  AND approval_status != ',
+        [user.id, id, 'completed', 'rejected']
+      )
+      if (onceCheck.rows.length > 0) {
+        ctx.body = error(400, '该任务已完成')
+        return
+      }
+    }
+    
+    if (task.frequency !== 'once') {
+      const existingCompletion = await pool.query(
+        'SELECT * FROM task_logs WHERE user_id =  AND task_id =  AND action =  AND created_at >=  AND approval_status != ',
+        [user.id, id, 'completed', cycleStart.toISOString(), 'rejected']
+      )
+      if (existingCompletion.rows.length > 0) {
+        ctx.body = error(400, '本周/日已完成该任务')
+        return
+      }
+    }
+    
     const result = await pool.query(
-      'INSERT INTO task_logs (user_id, task_id, action, stars_earned, approval_status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      'INSERT INTO task_logs (user_id, task_id, action, stars_earned, approval_status) VALUES (, , , , ) RETURNING *',
       [user.id, id, 'completed', task.star_reward, 'pending']
     )
     
     ctx.body = success({ message: '已完成申请，请等待家长审批', log: result.rows[0] })
   } catch (err) {
     console.error('CompleteTask error:', err)
-    ctx.body = error(500, '操作失败')
+    ctx.body = error(500, '完成任务失败')
   }
 }
-
 export async function skipTask(ctx) {
   const user = await getUserFromToken(ctx)
   if (!user) return

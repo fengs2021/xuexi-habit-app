@@ -23,7 +23,7 @@ function generateTokens(user) {
 }
 
 export async function registerParent(ctx) {
-  const { phone, password, nickname, familyName } = ctx.request.body
+  const { phone, password, nickname, familyName, inviteCode } = ctx.request.body
   if (!phone || !password || !nickname) {
     ctx.body = error(ErrorCodes.PARAM_ERROR, '手机号、密码、昵称为必填项')
     return
@@ -34,12 +34,24 @@ export async function registerParent(ctx) {
       ctx.body = error(2001, '手机号已被注册')
       return
     }
-    const familyCode = Math.random().toString(36).substr(2, 6).toUpperCase()
-    const familyResult = await pool.query(
-      'INSERT INTO family (name, code) VALUES ($1, $2) RETURNING *',
-      [familyName || '我的家庭', familyCode]
-    )
-    const family = familyResult.rows[0]
+    
+    let family
+    if (inviteCode) {
+      const familyResult = await pool.query('SELECT * FROM family WHERE code = $1', [inviteCode])
+      if (familyResult.rows.length === 0) {
+        ctx.body = error(404, '邀请码无效')
+        return
+      }
+      family = familyResult.rows[0]
+    } else {
+      const familyCode = Math.random().toString(36).substr(2, 6).toUpperCase()
+      const familyResult = await pool.query(
+        'INSERT INTO family (name, code) VALUES ($1, $2) RETURNING *',
+        [familyName || '我的家庭', familyCode]
+      )
+      family = familyResult.rows[0]
+    }
+    
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS)
     const userResult = await pool.query(
       `INSERT INTO users (family_id, phone, password_hash, nickname, role, level, stars) 
@@ -47,7 +59,9 @@ export async function registerParent(ctx) {
       [family.id, phone, passwordHash, nickname]
     )
     const user = userResult.rows[0]
-    await pool.query('UPDATE family SET owner_id = $1 WHERE id = $2', [user.id, family.id])
+    if (!inviteCode) {
+      await pool.query('UPDATE family SET owner_id = $1 WHERE id = $2', [user.id, family.id])
+    }
     const { accessToken, refreshToken } = generateTokens(user)
     await pool.query(
       'INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, NOW() + INTERVAL \'7 days\')',
@@ -251,38 +265,5 @@ export async function logout(ctx) {
     ctx.body = success({})
   } catch (err) {
     ctx.body = success({})
-  }
-}
-
-// 根据用户ID登录
-export async function loginById(ctx) {
-  const { userId } = ctx.request.body
-  if (!userId) {
-    ctx.body = error(ErrorCodes.PARAM_ERROR, '用户ID不能为空')
-    return
-  }
-  try {
-    const userResult = await pool.query(
-      'SELECT u.*, f.name as family_name FROM users u LEFT JOIN family f ON u.family_id = f.id WHERE u.id = ',
-      [userId]
-    )
-    if (userResult.rows.length === 0) {
-      ctx.body = error(404, '用户不存在')
-      return
-    }
-    const user = userResult.rows[0]
-    const { accessToken, refreshToken } = generateTokens(user)
-    await pool.query(
-      'INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES (, , NOW() + INTERVAL \'7 days\')',
-      [user.id, refreshToken]
-    )
-    ctx.body = success({
-      token: accessToken,
-      refreshToken,
-      user: { id: user.id, nickname: user.nickname, role: user.role, familyId: user.family_id, familyName: user.family_name, level: user.level, stars: user.stars }
-    })
-  } catch (err) {
-    console.error('LoginById error:', err)
-    ctx.body = error(500, '登录失败')
   }
 }

@@ -91,7 +91,7 @@
           <van-field v-model="registerForm.phone" label="手机号" placeholder="请输入手机号" />
           <van-field v-model="registerForm.password" type="password" label="密码" placeholder="请输入密码" />
           <van-field v-model="registerForm.nickname" label="昵称" placeholder="请输入昵称" />
-          <van-field v-model="registerForm.familyName" label="家庭名称" placeholder="请输入家庭名称" />
+          <van-field v-model="registerForm.inviteCode" label="邀请码" placeholder="可选填入邀请码加入家庭" />
         </van-cell-group>
       </van-form>
     </van-dialog>
@@ -161,7 +161,7 @@ const handleChildLogin = async () => {
   }
   loading.value = true
   try {
-    const res = await axios.post('/api/auth/login/child', { userId: selectedChildId.value })
+    const res = await axios.post('/api/auth/login/device', { userId: selectedChildId.value })
     const data = res.data
     if (data.code === 0) {
       userStore.token = data.data.token

@@ -5,13 +5,38 @@
         <h3>{{ task.title }}</h3>
         <p class="reward">{{ task.starReward || task.star_reward }} ★</p>
         <van-tag v-if="task.frequency === 'daily'" type="primary" size="small">每日</van-tag>
+        <van-tag v-if="task.frequency === 'weekly'" type="warning" size="small">每周</van-tag>
+        <van-tag v-if="task.frequency === 'once'" type="default" size="small">一次性</van-tag>
       </div>
       <div class="task-actions">
-        <van-button size="small" type="primary" @click.stop="complete" :loading="loading" v-if="!task.completed">完成</van-button>
-        <van-tag v-else-if="task.completed" type="success">已完成</van-tag>
+        <van-button 
+          v-if="task.pendingApproval" 
+          type="default" 
+          size="small" 
+          disabled
+        >
+          待审批
+        </van-button>
+        <van-button 
+          v-else-if="task.completed" 
+          type="default" 
+          size="small" 
+          disabled
+        >
+          已完成
+        </van-button>
+        <van-button 
+          v-else 
+          size="small" 
+          type="primary" 
+          @click.stop="complete" 
+          :loading="loading"
+        >
+          完成
+        </van-button>
       </div>
     </div>
-    <div class="task-skip" @click.stop="skip" v-if="!task.completed">
+    <div class="task-skip" @click.stop="skip" v-if="!task.completed && !task.pendingApproval">
       <van-icon name="delete" />
       <span>跳过</span>
     </div>
