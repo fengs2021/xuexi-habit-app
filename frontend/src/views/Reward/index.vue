@@ -9,8 +9,10 @@
       :key="reward.id"
       :reward="reward"
       @exchange="handleExchange"
+      @setTarget="handleSetTarget"
+      @clearTarget="handleClearTarget"
     />
-    <EmptyState v-if="rewards.length === 0" description="暂无奖励" />
+    <van-empty v-if="rewards.length === 0" description="暂无奖励" />
 
     <van-dialog v-model:show="showCreate" title="创建奖励" show-cancel-button @confirm="createReward">
       <van-form>
@@ -28,7 +30,6 @@ import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { getRewards, createReward as createRewardApi, createExchange } from '@/api/reward'
 import RewardCard from '@/components/RewardCard.vue'
-import EmptyState from '@/components/EmptyState.vue'
 import { showToast } from 'vant'
 
 const userStore = useUserStore()
@@ -65,6 +66,16 @@ const handleExchange = async (id) => {
   } catch (error) {
     showToast('兑换失败')
   }
+}
+
+const handleSetTarget = (reward) => {
+  userStore.setTargetReward({ id: reward.id, name: reward.title, cost: reward.starCost || reward.star_cost })
+  showToast(`已设定目标：${reward.title}`)
+}
+
+const handleClearTarget = () => {
+  userStore.clearTargetReward()
+  showToast('已取消目标')
 }
 
 onMounted(() => {

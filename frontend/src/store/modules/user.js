@@ -7,12 +7,14 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     token: '',
     userInfo: null,
-    roles: []
+    roles: [],
+    targetReward: null
   }),
   getters: {
     isAdmin: state => state.roles.includes(ROLES.ADMIN),
     isChild: state => state.roles.includes(ROLES.CHILD),
-    isLogin: state => !!state.token
+    isLogin: state => !!state.token,
+    stars: state => state.userInfo?.stars || 0
   },
   actions: {
     async loginParentAction(data) {
@@ -37,15 +39,23 @@ export const useUserStore = defineStore('user', {
       this.roles = [res.role]
       return res
     },
+    setTargetReward(reward) {
+      this.targetReward = reward
+    },
+    clearTargetReward() {
+      this.targetReward = null
+    },
     logoutAction() {
       this.token = ''
       this.userInfo = null
       this.roles = []
+      this.targetReward = null
       removeToken()
     }
   },
   persist: {
     key: 'USER_STORE',
-    storage: localStorage
+    storage: localStorage,
+    paths: ['token', 'userInfo', 'roles', 'targetReward']
   }
 })
