@@ -38,20 +38,46 @@
         <van-form @submit="handleChildLogin">
           <van-cell-group inset>
             <van-field
-              v-model="childForm.nickname"
-              label="昵称"
-              placeholder="请输入你的昵称"
-              :rules="[{ required: true, message: '请输入昵称' }]"
-            />
-            <van-field
-              v-model="childForm.inviteCode"
+              v-model="inviteCode"
               label="邀请码"
               placeholder="请输入家庭邀请码"
               :rules="[{ required: true, message: '请输入邀请码' }]"
+              @change="loadChildren"
             />
           </van-cell-group>
+
+          <van-cell-group inset title="选择学生" v-if="children.length > 0">
+            <van-radio-group v-model="selectedChildId">
+              <van-cell-group>
+                <van-cell
+                  v-for="child in children"
+                  :key="child.id"
+                  clickable
+                  @click="selectedChildId = child.id"
+                >
+                  <template #title>
+                    <span class="child-name">{{ child.nickname }}</span>
+                  </template>
+                  <template #label>
+                    <span class="child-stars">{{ child.stars || 0 }} ★</span>
+                  </template>
+                  <template #right-icon>
+                    <van-radio :name="child.id" />
+                  </template>
+                </van-cell>
+              </van-cell-group>
+            </van-radio-group>
+          </van-cell-group>
+
           <div style="margin: 16px;">
-            <van-button round block type="primary" native-type="submit" :loading="loading">
+            <van-button
+              round
+              block
+              type="primary"
+              native-type="submit"
+              :loading="loading"
+              :disabled="!selectedChildId"
+            >
               登录
             </van-button>
           </div>
@@ -76,8 +102,9 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
-import { registerParent } from '@/api/auth'
+import { registerParent, loginParent } from '@/api/auth'
 import { showToast } from 'vant'
+import axios from 'axios'
 
 const { VITE_APP_TITLE } = import.meta.env
 const router = useRouter()
@@ -86,10 +113,33 @@ const userStore = useUserStore()
 const loading = ref(false)
 const activeTab = ref('parent')
 const showRegister = ref(false)
+const inviteCode = ref('')
+const children = ref([])
+const selectedChildId = ref(null)
 
 const parentForm = reactive({ phone: '', password: '' })
-const childForm = reactive({ nickname: '', inviteCode: '' })
 const registerForm = reactive({ phone: '', password: '', nickname: '', familyName: '' })
+
+const loadChildren = async () => {
+  if (inviteCode.value.length < 4) return
+  try {
+    const res = await axios.get(`/api/family/by-code/${inviteCode.value}`)
+    if (res.data.code === 0) {
+      children.value = res.data.data.children || []
+      if (children.value.length === 1) {
+        selectedChildId.value = children.value[0].id
+      } else {
+        selectedChildId.value = null
+      }
+    } else {
+      children.value = []
+      selectedChildId.value = null
+    }
+  } catch (error) {
+    children.value = []
+    selectedChildId.value = null
+  }
+}
 
 const handleParentLogin = async () => {
   loading.value = true
@@ -105,14 +155,23 @@ const handleParentLogin = async () => {
 }
 
 const handleChildLogin = async () => {
+  if (!selectedChildId.value) {
+    showToast('请选择学生')
+    return
+  }
   loading.value = true
   try {
-    await userStore.loginChildAction({
-      inviteCode: childForm.inviteCode,
-      nickname: childForm.nickname
-    })
-    showToast('登录成功')
-    router.push('/dashboard')
+    const res = await axios.post('/api/auth/login/child', { userId: selectedChildId.value })
+    const data = res.data
+    if (data.code === 0) {
+      userStore.token = data.data.token
+      userStore.userInfo = data.data.user
+      userStore.roles = [data.data.user.role]
+      showToast('登录成功')
+      router.push('/dashboard')
+    } else {
+      showToast(data.message || '登录失败')
+    }
   } catch (error) {
     showToast(error.message || '登录失败')
   } finally {
@@ -161,5 +220,12 @@ const handleRegister = async () => {
 .register-tip span {
   color: #409eff;
   cursor: pointer;
+}
+.child-name {
+  font-size: 16px;
+  font-weight: bold;
+}
+.child-stars {
+  color: #ff976a;
 }
 </style>

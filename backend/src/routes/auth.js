@@ -1,5 +1,5 @@
 import Router from '@koa/router'
-import { registerParent, registerChild, loginParent, loginDevice, refreshToken, me, logout } from '../controllers/auth.js'
+import { registerParent, registerChild, loginParent, loginDevice, loginById, refreshToken, me, logout } from '../controllers/auth.js'
 
 const router = new Router({ prefix: '/api/auth' })
 
@@ -12,3 +12,5 @@ router.get('/me', me)
 router.post('/logout', logout)
 
 export default router
+
+router.post('/login/child', loginById)

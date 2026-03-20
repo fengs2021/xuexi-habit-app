@@ -253,3 +253,36 @@ export async function logout(ctx) {
     ctx.body = success({})
   }
 }
+
+// 根据用户ID登录
+export async function loginById(ctx) {
+  const { userId } = ctx.request.body
+  if (!userId) {
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '用户ID不能为空')
+    return
+  }
+  try {
+    const userResult = await pool.query(
+      'SELECT u.*, f.name as family_name FROM users u LEFT JOIN family f ON u.family_id = f.id WHERE u.id = ',
+      [userId]
+    )
+    if (userResult.rows.length === 0) {
+      ctx.body = error(404, '用户不存在')
+      return
+    }
+    const user = userResult.rows[0]
+    const { accessToken, refreshToken } = generateTokens(user)
+    await pool.query(
+      'INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES (, , NOW() + INTERVAL \'7 days\')',
+      [user.id, refreshToken]
+    )
+    ctx.body = success({
+      token: accessToken,
+      refreshToken,
+      user: { id: user.id, nickname: user.nickname, role: user.role, familyId: user.family_id, familyName: user.family_name, level: user.level, stars: user.stars }
+    })
+  } catch (err) {
+    console.error('LoginById error:', err)
+    ctx.body = error(500, '登录失败')
+  }
+}
