@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { loginParent, loginChild, getUserInfo } from '@/api/auth'
+import { loginParent, registerChild, getUserInfo } from '@/api/auth'
 import { setToken, removeToken } from '@/utils/auth'
 import { ROLES } from '@/utils/permission'
 
@@ -26,11 +26,15 @@ export const useUserStore = defineStore('user', {
       return res
     },
     async loginChildAction(data) {
-      const res = await loginChild(data)
+      // 孩子使用registerChild API (邀请码注册)
+      const res = await registerChild(data)
       this.token = res.token
       this.userInfo = res.user
       this.roles = [res.user.role]
       setToken(res.token)
+      if (res.user && res.user.deviceId) {
+        localStorage.setItem('deviceId', res.user.deviceId)
+      }
       return res
     },
     async getUserInfoAction() {

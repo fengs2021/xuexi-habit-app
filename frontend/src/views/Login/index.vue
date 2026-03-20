@@ -77,7 +77,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { registerParent } from '@/api/auth'
-import { showToast, showDialog } from 'vant'
+import { showToast } from 'vant'
 
 const { VITE_APP_TITLE } = import.meta.env
 const router = useRouter()
@@ -107,12 +107,14 @@ const handleParentLogin = async () => {
 const handleChildLogin = async () => {
   loading.value = true
   try {
-    // 孩子登录使用设备ID
-    const deviceId = localStorage.getItem('deviceId') || 'device_' + Date.now()
-    localStorage.setItem('deviceId', deviceId)
-    await userStore.loginChildAction({ deviceId, nickname: childForm.nickname })
+    await userStore.loginChildAction({
+      inviteCode: childForm.inviteCode,
+      nickname: childForm.nickname
+    })
     showToast('登录成功')
     router.push('/dashboard')
+  } catch (error) {
+    showToast(error.message || '登录失败')
   } finally {
     loading.value = false
   }
@@ -124,6 +126,8 @@ const handleRegister = async () => {
     await registerParent(registerForm)
     showToast('注册成功，请登录')
     showRegister.value = false
+  } catch (error) {
+    showToast(error.message || '注册失败')
   } finally {
     loading.value = false
   }

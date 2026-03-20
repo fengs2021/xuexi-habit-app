@@ -30,7 +30,7 @@ service.interceptors.response.use(
       }
       return Promise.reject(new Error(res.message))
     }
-    return res
+    return res.data
   },
   error => {
     showToast(error.message || '网络错误')
