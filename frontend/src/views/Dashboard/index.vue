@@ -1,21 +1,5 @@
 <template>
   <div class="dashboard">
-    <van-cell-group inset>
-      <van-cell>
-        <template #title>
-          <div class="welcome">
-            <span>欢迎回来，{{ userStore.userInfo?.nickname }}！</span>
-            <van-tag v-if="userStore.isAdmin" type="primary">家长</van-tag>
-            <van-tag v-else type="success">学生</van-tag>
-          </div>
-        </template>
-      </van-cell>
-    </van-cell-group>
-
-    <van-cell-group inset class="stars-card">
-      <van-cell title="我的星星" :value="(userStore.userInfo?.stars || 0) + ' ★'" />
-    </van-cell-group>
-
     <!-- 目标血条（仅孩子且有目标时显示） -->
     <van-cell-group inset class="target-card" v-if="userStore.isChild && userStore.targetReward">
       <van-cell>
@@ -87,7 +71,13 @@ const loadTasks = async () => {
   loading.value = true
   try {
     const data = await getTasks()
-    tasks.value = data || []
+    // 根据角色筛选任务
+    if (userStore.isAdmin) {
+      tasks.value = data.daily || []
+    } else {
+      // 孩子只显示今日任务
+      tasks.value = (data.daily || []).filter(t => !t.action)
+    }
   } catch (error) {
     showToast('加载任务失败')
   } finally {
@@ -98,11 +88,10 @@ const loadTasks = async () => {
 const handleComplete = async (id) => {
   try {
     await completeTask(id)
-    showToast('任务完成！')
+    showToast('已完成申请，请等待家长审批')
     await loadTasks()
-    await userStore.getUserInfoAction()
   } catch (error) {
-    showToast('操作失败')
+    showToast(error.message || '操作失败')
   }
 }
 
@@ -112,7 +101,7 @@ const handleSkip = async (id) => {
     showToast('已跳过')
     await loadTasks()
   } catch (error) {
-    showToast('操作失败')
+    showToast(error.message || '操作失败')
   }
 }
 
@@ -128,16 +117,8 @@ onMounted(async () => {
 .dashboard {
   padding-bottom: 20px;
 }
-.welcome {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.stars-card {
-  margin-top: 12px;
-}
 .target-card {
-  margin-top: 12px;
+  margin-bottom: 12px;
 }
 .target-title {
   display: flex;
