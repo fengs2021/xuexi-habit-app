@@ -1,7 +1,12 @@
-import Router from 'koa-router'
-import { getExchanges, createExchange, updateExchange } from '../controllers/exchange.js'
+import Router from '@koa/router'
+import { createExchange, getPendingExchanges, approveExchange, rejectExchange, getExchangeHistory } from '../controllers/exchange.js'
+
 const router = new Router({ prefix: '/api/exchanges' })
-router.get('/', getExchanges)
+
 router.post('/', createExchange)
-router.put('/:id', updateExchange)
+router.get('/pending', getPendingExchanges)
+router.put('/:id/approve', approveExchange)
+router.put('/:id/reject', rejectExchange)
+router.get('/history', getExchangeHistory)
+
 export default router

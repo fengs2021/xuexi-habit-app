@@ -74,7 +74,7 @@ export async function completeTask(ctx) {
     const taskId = ctx.params.id
     const taskResult = await pool.query('SELECT * FROM tasks WHERE id = $1', [taskId])
     if (taskResult.rows.length === 0) {
-      ctx.body = error(ErrorCodes.TASK_NOT_FOUND, '任务不存在')
+      ctx.body = error(3002, '任务不存在')
       return
     }
     const task = taskResult.rows[0]
@@ -84,7 +84,7 @@ export async function completeTask(ctx) {
     )
     const userResult = await pool.query('SELECT stars FROM users WHERE id = $1', [decoded.id])
     const newStars = (userResult.rows[0]?.stars || 0) + task.star_reward
-    await pool.query('UPDATE users SET stars = $1 WHERE id = $2', [newStars, decoded.id])
+    await pool.query('UPDATE users SET stars = stars + $1, wish_points = wish_points + $1 WHERE id = $2', [task.star_reward, decoded.id])
     ctx.body = success({ starsEarned: task.star_reward, totalStars: newStars })
   } catch (err) {
     console.error('CompleteTask error:', err)

@@ -17,7 +17,10 @@ export async function getGoals(ctx) {
       ctx.body = error(ErrorCodes.USER_NOT_FOUND, '用户不存在')
       return
     }
-    const result = await pool.query('SELECT * FROM goals WHERE family_id = $1 AND status = $2 ORDER BY created_at DESC', [userResult.rows[0].family_id, 'active'])
+    const result = await pool.query(
+      'SELECT * FROM goals WHERE family_id = $1 AND status = $2 ORDER BY created_at DESC',
+      [userResult.rows[0].family_id, 'active']
+    )
     ctx.body = success(result.rows)
   } catch (err) {
     console.error('GetGoals error:', err)
