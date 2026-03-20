@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  learn-app-frontend:
+    build: .
+    ports:
+      - "80:80"
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai

@@ -1,43 +1,38 @@
 import axios from 'axios'
 
-const api = axios.create({
-  // 开发环境使用相对路径（通过 Vite 代理）
-  // 生产环境使用环境变量
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json'
+function transformData(obj) {
+  if (Array.isArray(obj)) return obj.map(transformData)
+  if (obj && typeof obj === 'object') {
+    const result = {}
+    for (const key in obj) {
+      const camelKey = key.replace(/_([a-z])/g, m => m[1].toUpperCase())
+      result[camelKey] = transformData(obj[key])
+    }
+    return result
   }
+  return obj
+}
+
+const api = axios.create({
+  baseURL: '/api',
+  timeout: 10000,
+  headers: { 'Content-Type': 'application/json' }
 })
 
-// 请求拦截器 - 自动添加 Token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token')
+  if (token) config.headers.Authorization = 'Bearer ' + token
+  return config
+})
 
-// 响应拦截器 - 统一处理错误
 api.interceptors.response.use(
-  (response) => {
-    const res = response.data
-    if (res.code !== 0) {
-      console.error('API Error:', res.message)
-      return Promise.reject(new Error(res.message || '请求失败'))
-    }
-    return res
+  res => {
+    const data = res.data
+    if (data.code !== 0) return Promise.reject(new Error(data.message || '请求失败'))
+    data.data = transformData(data.data)
+    return data
   },
-  (error) => {
-    console.error('Network Error:', error.message)
-    return Promise.reject(error)
-  }
+  err => Promise.reject(err)
 )
 
 export default api
