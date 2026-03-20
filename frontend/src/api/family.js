@@ -1,5 +1,17 @@
-import api from './index'
-export function getFamily() { return api.get('/family') }
-export function updateFamily(data) { return api.put('/family', data) }
-export function getChildren() { return api.get('/family/children') }
-export function generateInviteCode() { return api.post('/family/invite') }
+import request from './request'
+
+export function getFamily() {
+  return request({ url: '/family', method: 'GET' })
+}
+
+export function updateFamily(data) {
+  return request({ url: '/family', method: 'PUT', data })
+}
+
+export function getChildren() {
+  return request({ url: '/family/children', method: 'GET' })
+}
+
+export function generateInviteCode() {
+  return request({ url: '/family/invite', method: 'POST' })
+}
