@@ -21,6 +21,12 @@
       </van-cell>
     </van-cell-group>
 
+    <!-- 数据管理（仅家长可见） -->
+    <van-cell-group inset title="📦 数据管理" class="data-group" v-if="userStore.isAdmin">
+      <van-cell title="📤 导出我的数据" is-link @click="exportMyData" />
+      <van-cell title="💾 备份家庭数据" is-link @click="backupFamily" />
+    </van-cell-group>
+
     <!-- 展示设置 -->
     <van-cell-group inset title="🎀 我的展示" class="display-group" v-if="userStore.isChild">
       <van-cell title="已选徽章" :value="selectedAchievement?.name || '未选择'" is-link @click="showAchievementPicker = true" />
@@ -130,7 +136,8 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { getAchievements, getUserAchievements } from '@/api/achievements'
 import { getStickers, getUserStickers } from '@/api/stickers'
-import { showConfirmDialog, showToast } from 'vant'
+import { exportUserData, backupFamilyData } from '@/api/backup'
+import { showConfirmDialog, showToast, showLoadingToast, closeToast } from 'vant'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -252,6 +259,66 @@ const selectedStickersText = computed(() => {
   return selectedStickers.value.map(s => s.emoji).join(' ')
 })
 
+// 导出我的数据
+const exportMyData = async () => {
+  if (!userStore.userInfo?.id) {
+    showToast('未登录')
+    return
+  }
+  
+  showLoadingToast({ message: '导出中...', forbidClick: true })
+  try {
+    const res = await exportUserData(userStore.userInfo.id)
+    const data = res?.data || res
+    
+    // 创建JSON文件并下载
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `我的数据_${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    
+    closeToast()
+    showToast('导出成功')
+  } catch (error) {
+    closeToast()
+    console.error('Export error:', error)
+    showToast('导出失败')
+  }
+}
+
+// 备份家庭数据
+const backupFamily = async () => {
+  if (!userStore.userInfo?.familyId) {
+    showToast('无家庭数据')
+    return
+  }
+  
+  showLoadingToast({ message: '备份中...', forbidClick: true })
+  try {
+    const res = await backupFamilyData(userStore.userInfo.familyId)
+    const data = res?.data || res
+    
+    // 创建JSON文件并下载
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `家庭备份_${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    
+    closeToast()
+    showToast('备份成功')
+  } catch (error) {
+    closeToast()
+    console.error('Backup error:', error)
+    showToast('备份失败')
+  }
+}
+
 const loadData = async () => {
   try {
     // 加载成就
@@ -293,7 +360,7 @@ const loadData = async () => {
       ownedStickers.value = userStickerRes?.data || userStickerRes || []
       ownedStickerIds.value = (ownedStickers.value).map(s => s.id)
       
-      // 重新加载展示设置中的贴纸（因为ownedStickers在上面才加载）
+      // 重新加载展示设置中的贴纸
       if (userStore.displaySettings?.equipped_sticker1_id) {
         const s1 = ownedStickers.value.find(
           s => s.id === userStore.displaySettings.equipped_sticker1_id
@@ -405,6 +472,11 @@ onMounted(() => {
   color: #FF69B4;
   font-size: 13px;
   font-weight: 500;
+}
+.data-group :deep(.van-cell-group__title) {
+  color: #FF69B4;
+  font-size: 14px;
+  font-weight: bold;
 }
 .display-group :deep(.van-cell-group__title) {
   color: #FF69B4;
