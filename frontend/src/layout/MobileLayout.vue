@@ -252,7 +252,7 @@ onBeforeRouteUpdate((to) => {
 .congrats-header {
   font-size: 24px;
   font-weight: bold;
-  color: #FF69B4;
+  color: var(--theme-primary);
   margin-bottom: 16px;
   text-shadow: 0 2px 4px rgba(255,105,180,0.3);
   animation: pulse 1s ease-in-out infinite;
@@ -338,17 +338,14 @@ onBeforeRouteUpdate((to) => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 25%, #FF69B4 50%, #FF85A2 75%, #FFB6C1 100%);
+  background: var(--theme-gradient);
   background-size: 200% 200%;
   color: #fff;
-  box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4);
-  animation: pinkGradient 6s ease infinite;
+  box-shadow: 0 4px 15px var(--theme-shadow);
+  
   overflow: hidden;
 }
-@keyframes pinkGradient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
+
 .flower-deco {
   position: absolute;
   font-size: 24px;
