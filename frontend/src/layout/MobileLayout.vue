@@ -1,5 +1,31 @@
 <template>
   <div class="mobile-layout">
+    <!-- 恭喜弹窗 -->
+    <van-popup v-model:show="showCongrats" round closeable class="congrats-popup">
+      <div class="congrats-content">
+        <div class="congrats-header">🎉 恭喜获得 🎉</div>
+        
+        <div v-if="newAchievements.length > 0" class="reward-section">
+          <div class="reward-title">🏅 新成就</div>
+          <div v-for="item in newAchievements" :key="item.id" class="reward-item achievement">
+            <span class="reward-icon">{{ item.icon || '🏅' }}</span>
+            <span class="reward-name">{{ item.name }}</span>
+          </div>
+        </div>
+        
+        <div v-if="newStickers.length > 0" class="reward-section">
+          <div class="reward-title">🌟 新贴纸</div>
+          <div class="sticker-grid">
+            <span v-for="item in newStickers" :key="item.id" class="reward-sticker">{{ item.emoji }}</span>
+          </div>
+        </div>
+        
+        <div v-if="newAchievements.length === 0 && newStickers.length === 0" class="reward-section">
+          <div class="reward-title">🎊 有新奖励可领取！</div>
+        </div>
+      </div>
+    </van-popup>
+
     <div class="header-bar">
       <div class="flower-deco flower-1">🌸</div>
       <div class="flower-deco flower-2">🌺</div>
@@ -46,6 +72,7 @@ import { useUserStore } from '@/store/modules/user'
 import { getDisplaySettings } from '@/api/display'
 import { getAchievements } from '@/api/achievements'
 import { getStickers } from '@/api/stickers'
+import { getNewRewards } from '@/api/statistics'
 
 const props = defineProps({
   showHeader: { type: Boolean, default: true },
@@ -67,19 +94,20 @@ const allStickers = ref([])
 const equippedAchievement = ref(null)
 const equippedStickers = ref([])
 
+// 新奖励弹窗
+const showCongrats = ref(false)
+const newAchievements = ref([])
+const newStickers = ref([])
+
 const getAchievementLevel = (achievement) => {
   if (!achievement) return 1
   const type = achievement.type || ''
   const name = achievement.name || ''
-  // Diamond: level achievements
   if (type.includes('level_') || name.includes('级')) return 5
-  // Gold: 100 tasks, 200 stars, 3 goals, 30 stickers
   if (type.includes('task_count_100') || type.includes('star_total_200') || 
       type.includes('goal_completed_3') || type.includes('sticker_count_30')) return 4
-  // Silver: 50 tasks, 50 stars, 10 stickers
   if (type.includes('task_count_50') || type.includes('star_total_50') || 
       type.includes('sticker_count_10')) return 3
-  // Bronze: 10 tasks, 1 goal
   if (type.includes('task_count_10') || type.includes('goal_completed_1')) return 2
   return 1
 }
@@ -128,6 +156,31 @@ const loadDisplayData = async () => {
   }
 }
 
+// 检查新奖励
+const checkNewRewards = async () => {
+  if (!userStore.userInfo?.id || !userStore.isChild) return
+  
+  // 检查是否已经弹过今天的新奖励
+  const lastShown = localStorage.getItem('rewards_shown_date')
+  const today = new Date().toISOString().split('T')[0]
+  if (lastShown === today) return
+  
+  try {
+    const res = await getNewRewards(userStore.userInfo.id)
+    const data = res?.data || res
+    
+    newAchievements.value = data?.achievements || []
+    newStickers.value = data?.stickers || []
+    
+    if (newAchievements.value.length > 0 || newStickers.value.length > 0) {
+      showCongrats.value = true
+      localStorage.setItem('rewards_shown_date', today)
+    }
+  } catch (e) {
+    console.error('Check new rewards error:', e)
+  }
+}
+
 const updateTime = () => {
   const now = new Date()
   dateStr.value = (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + weekdays[now.getDay()]
@@ -163,6 +216,7 @@ onMounted(() => {
   updateTime()
   timer = setInterval(updateTime, 1000)
   loadDisplayData()
+  checkNewRewards()
 })
 
 onUnmounted(() => {
@@ -181,6 +235,103 @@ onBeforeRouteUpdate((to) => {
   flex-direction: column;
   height: 100vh;
 }
+
+/* 恭喜弹窗样式 */
+.congrats-popup {
+  width: 85%;
+  max-width: 320px;
+  background: linear-gradient(135deg, #FFF8DC 0%, #FFFACD 50%, #FFE4E1 100%);
+  border: 3px solid #FFD700;
+}
+
+.congrats-content {
+  padding: 20px;
+  text-align: center;
+}
+
+.congrats-header {
+  font-size: 24px;
+  font-weight: bold;
+  color: #FF69B4;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 4px rgba(255,105,180,0.3);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.reward-section {
+  margin-bottom: 16px;
+}
+
+.reward-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #FF6B6B;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 12px;
+}
+
+.reward-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.reward-item.achievement {
+  border-left: 4px solid #FFD700;
+}
+
+.reward-icon {
+  font-size: 24px;
+}
+
+.reward-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+
+.sticker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.reward-sticker {
+  font-size: 40px;
+  animation: bounce 0.6s ease infinite;
+}
+
+.reward-sticker:nth-child(2n) {
+  animation-delay: 0.1s;
+}
+
+.reward-sticker:nth-child(3n) {
+  animation-delay: 0.2s;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
 .header-bar {
   position: relative;
   display: flex;

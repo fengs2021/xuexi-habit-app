@@ -28,6 +28,9 @@
               登录
             </van-button>
           </div>
+          <div class="register-tip">
+            没有账号？<span @click="showRegister = true">去注册</span>
+          </div>
         </van-form>
       </van-tab>
 
@@ -214,4 +217,5 @@ const handleRegister = async () => {
   padding: 16px;
   min-height: 300px;
 }
+.register-tip { text-align: center; margin-top: 16px; color: #666; } .register-tip span { color: #1989fa; cursor: pointer; }
 </style>
