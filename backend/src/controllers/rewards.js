@@ -1,7 +1,8 @@
 import pool from '../config/database.js'
 
 export async function awardRandomSticker(userId, taskType) {
-  let probabilities = { N: 0.7, R: 0.2, SR: 0.08, SSR: 0.02 }
+  try {
+    let probabilities = { N: 0.7, R: 0.2, SR: 0.08, SSR: 0.02 }
   if (taskType === 'weekly') {
     probabilities = { N: 0.5, R: 0.3, SR: 0.15, SSR: 0.05 }
   } else if (taskType === 'once') {
@@ -39,10 +40,15 @@ export async function awardRandomSticker(userId, taskType) {
     }
   }
   return { awarded: false }
+  } catch (error) {
+    console.error('awardRandomSticker error:', error)
+    return { awarded: false, error: error.message }
+  }
 }
 
 export async function checkAndAwardAchievements(userId) {
   const awarded = []
+  try {
   
   const earnedResult = await pool.query(
     'SELECT achievement_id FROM user_achievements WHERE user_id = $1',
@@ -152,4 +158,8 @@ export async function checkAndAwardAchievements(userId) {
   }
   
   return awarded
+  } catch (error) {
+    console.error('checkAndAwardAchievements error:', error)
+    return awarded
+  }
 }

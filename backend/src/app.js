@@ -29,7 +29,7 @@ const app = new Koa()
 const PORT = process.env.PORT || 8080
 
 // 中间件
-app.use(cors())
+app.use(cors({origin: process.env.ALLOWED_ORIGIN || '*', credentials: true}))
 app.use(bodyParser())
 
 // 路由

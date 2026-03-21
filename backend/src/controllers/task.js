@@ -218,16 +218,20 @@ export async function approveTaskLog(ctx) {
   const { id } = ctx.params
   const { approved, taskType } = ctx.request.body
   
+  const client = await pool.connect()
   try {
-    const logResult = await pool.query('SELECT * FROM task_logs WHERE id = $1', [id])
+    await client.query('BEGIN')
+    
+    const logResult = await client.query('SELECT * FROM task_logs WHERE id = $1', [id])
     if (logResult.rows.length === 0) {
+      await client.query('ROLLBACK')
       ctx.body = error(404, '记录不存在')
       return
     }
     
     const log = logResult.rows[0]
     
-    await pool.query(
+    await client.query(
       'UPDATE task_logs SET approval_status = $1 WHERE id = $2',
       [approved ? 'approved' : 'rejected', id]
     )
@@ -236,7 +240,7 @@ export async function approveTaskLog(ctx) {
     let newAchievements = []
     
     if (approved) {
-      await pool.query(
+      await client.query(
         'UPDATE users SET stars = stars + $1 WHERE id = $2',
         [log.stars_earned || 1, log.user_id]
       )
@@ -251,12 +255,14 @@ export async function approveTaskLog(ctx) {
       }
     }
     
+    await client.query('COMMIT')
     ctx.body = success({ 
       message: approved ? '已批准' : '已拒绝',
       sticker: stickerResult,
       newAchievements: newAchievements
     })
   } catch (err) {
+    await client.query('ROLLBACK')
     console.error('ApproveTaskLog error:', err)
     ctx.body = error(500, '操作失败')
   }
