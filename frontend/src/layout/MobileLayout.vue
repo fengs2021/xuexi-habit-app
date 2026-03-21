@@ -241,7 +241,8 @@ const onTabChange = (path) => {
   router.push(path)
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await userStore.getUserInfoAction()
   updateTime()
   timer = setInterval(updateTime, 1000)
   loadDisplayData()

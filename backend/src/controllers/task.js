@@ -246,6 +246,12 @@ export async function approveTaskLog(ctx) {
         [log.stars_earned || 1, log.user_id]
       )
       
+      // 更新积分汇总表
+      await client.query(
+        'INSERT INTO user_point_summary (user_id, total_earned) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
+        [log.user_id, log.stars_earned || 1]
+      )
+      
       // 导入奖励函数并发放贴纸
       try {
         const { awardRandomSticker, checkAndAwardAchievements } = await import('./rewards.js')

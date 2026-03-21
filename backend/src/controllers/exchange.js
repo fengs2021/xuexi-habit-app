@@ -159,6 +159,12 @@ export async function approveExchange(ctx) {
       [exchange.stars_spent, exchange.user_id]
     )
     
+    // 更新积分汇总表
+    await pool.query(
+      'INSERT INTO user_point_summary (user_id, total_used) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_used = user_point_summary.total_used + $2, updated_at = NOW()',
+      [exchange.user_id, exchange.stars_spent]
+    )
+    
     // 更新兑换状态
     await pool.query(
       'UPDATE exchange_logs SET status = $1, approved_by = $2, approved_at = NOW() WHERE id = $3',

@@ -29,17 +29,19 @@ export const useUserStore = defineStore('user', {
     async loginParentAction(data) {
       const res = await loginParent(data)
       this.token = res.token
-      this.userInfo = res.user
-      this.roles = [res.user.role]
       setToken(res.token)
+      // Refresh userInfo to get calculated stars
+      await this.getUserInfoAction()
+      this.roles = [this.userInfo?.role]
       return res
     },
     async loginChildAction(data) {
       const res = await registerChild(data)
       this.token = res.token
-      this.userInfo = res.user
-      this.roles = [res.user.role]
       setToken(res.token)
+      // Refresh userInfo to get calculated stars
+      await this.getUserInfoAction()
+      this.roles = [this.userInfo?.role]
       if (res.user && res.user.deviceId) {
         localStorage.setItem('deviceId', res.user.deviceId)
       }

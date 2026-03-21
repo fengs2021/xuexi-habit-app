@@ -7,10 +7,9 @@
 
     <!-- 家长视图 -->
     <van-tabs v-if="userStore.isAdmin" v-model:active="activeTab">
-      <van-tab title="进行中">
-        <!-- 任务列表（可编辑） -->
-        <van-cell-group inset title="任务列表">
-          <van-cell v-for="task in tasks" :key="task.id">
+      <van-tab title="每日任务">
+        <van-cell-group inset title="每日任务列表">
+          <van-cell v-for="task in dailyTasks" :key="task.id">
             <template #title>
               <van-field v-model="task.title" style="padding: 0;" @blur="updateTask(task)" />
             </template>
@@ -18,9 +17,6 @@
               <div class="task-edit-row">
                 <span>星级：</span>
                 <van-stepper v-model="task.starReward" integer min="1" max="99" @change="updateTask(task)" />
-                <van-tag :type="task.frequency === 'daily' ? 'primary' : task.frequency === 'weekly' ? 'warning' : 'default'" size="small">
-                  {{ task.frequency === 'daily' ? '每日' : task.frequency === 'weekly' ? '每周' : '一次性' }}
-                </van-tag>
               </div>
               <div class="student-status-row">
                 <span class="completed">已完成：{{ getCompletedStudents(task).join(', ') || '无' }}</span>
@@ -33,18 +29,58 @@
               <van-button size="small" type="danger" plain @click="deleteTask(task.id)">删除</van-button>
             </template>
           </van-cell>
-          <van-empty v-if="tasks.length === 0" description="暂无任务" />
+          <van-empty v-if="dailyTasks.length === 0" description="暂无每日任务" />
         </van-cell-group>
       </van-tab>
-      <van-tab title="已完成">
-        <div v-for="task in completedTasks" :key="task.id" class="completed-task-card">
-          <div class="task-info">
-            <h3>{{ task.title }}</h3>
-            <p class="reward">+{{ task.starReward || task.star_reward }} ★</p>
-          </div>
-          <van-tag type="success">已完成</van-tag>
-        </div>
-        <van-empty v-if="completedTasks.length === 0" description="暂无已完成任务" />
+      <van-tab title="每周任务">
+        <van-cell-group inset title="每周任务列表">
+          <van-cell v-for="task in weeklyTasks" :key="task.id">
+            <template #title>
+              <van-field v-model="task.title" style="padding: 0;" @blur="updateTask(task)" />
+            </template>
+            <template #label>
+              <div class="task-edit-row">
+                <span>星级：</span>
+                <van-stepper v-model="task.starReward" integer min="1" max="99" @change="updateTask(task)" />
+              </div>
+              <div class="student-status-row">
+                <span class="completed">已完成：{{ getCompletedStudents(task).join(', ') || '无' }}</span>
+              </div>
+              <div class="student-status-row">
+                <span class="pending">待审批：{{ getPendingStudents(task).join(', ') || '无' }}</span>
+              </div>
+            </template>
+            <template #right-icon>
+              <van-button size="small" type="danger" plain @click="deleteTask(task.id)">删除</van-button>
+            </template>
+          </van-cell>
+          <van-empty v-if="weeklyTasks.length === 0" description="暂无每周任务" />
+        </van-cell-group>
+      </van-tab>
+      <van-tab title="特殊任务">
+        <van-cell-group inset title="特殊任务列表">
+          <van-cell v-for="task in specialTasks" :key="task.id">
+            <template #title>
+              <van-field v-model="task.title" style="padding: 0;" @blur="updateTask(task)" />
+            </template>
+            <template #label>
+              <div class="task-edit-row">
+                <span>星级：</span>
+                <van-stepper v-model="task.starReward" integer min="1" max="99" @change="updateTask(task)" />
+              </div>
+              <div class="student-status-row">
+                <span class="completed">已完成：{{ getCompletedStudents(task).join(', ') || '无' }}</span>
+              </div>
+              <div class="student-status-row">
+                <span class="pending">待审批：{{ getPendingStudents(task).join(', ') || '无' }}</span>
+              </div>
+            </template>
+            <template #right-icon>
+              <van-button size="small" type="danger" plain @click="deleteTask(task.id)">删除</van-button>
+            </template>
+          </van-cell>
+          <van-empty v-if="specialTasks.length === 0" description="暂无特殊任务" />
+        </van-cell-group>
       </van-tab>
     </van-tabs>
 
@@ -154,8 +190,9 @@ const loadTasks = async () => {
     const data = await getTasks()
     
     if (userStore.isAdmin) {
-      tasks.value = (data.daily || []).map(mapTaskFields)
-      completedTasks.value = []
+      dailyTasks.value = (data.daily || []).map(mapTaskFields)
+      weeklyTasks.value = (data.weekly || []).map(mapTaskFields)
+      specialTasks.value = (data.special || []).map(mapTaskFields)
       try {
         const statusData = await getStudentTaskStatus()
         studentTaskStatus.value = statusData || []

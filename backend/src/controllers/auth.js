@@ -1,3 +1,18 @@
+
+// Helper to get user stars from summary table
+async function getUserStars(userId) {
+  const summaryResult = await pool.query(
+    'SELECT total_earned, total_used FROM user_point_summary WHERE user_id = $1',
+    [userId]
+  )
+  const summary = summaryResult.rows[0] || { total_earned: 0, total_used: 0 }
+  return {
+    stars: parseInt(summary.total_earned || 0) - parseInt(summary.total_used || 0),
+    totalStars: parseInt(summary.total_earned || 0),
+    usedStars: parseInt(summary.total_used || 0)
+  }
+}
+
 import pool from '../config/database.js'
 import { success, error, ErrorCodes } from '../utils/response.js'
 import jwt from 'jsonwebtoken'
@@ -237,12 +252,8 @@ export async function me(ctx) {
     }
     const user = userResult.rows[0]
     
-    // Calculate total earned stars from approved task completions
-    const totalEarnedResult = await pool.query(
-      'SELECT COALESCE(SUM(stars_earned), 0) as total FROM task_logs WHERE user_id = $1 AND action = $2 AND approval_status = $3',
-      [user.id, 'completed', 'approved']
-    )
-    const totalEarned = parseInt(totalEarnedResult.rows[0]?.total || 0)
+    // Get stars from summary table
+    const starInfo = await getUserStars(user.id)
     
     ctx.body = success({
       id: user.id,
@@ -252,8 +263,9 @@ export async function me(ctx) {
       familyId: user.family_id,
       familyName: user.family_name,
       level: user.level,
-      stars: user.stars,
-      totalStars: totalEarned,
+      stars: starInfo.stars,
+      totalStars: starInfo.totalStars,
+      usedStars: starInfo.usedStars,
       wishPoints: user.wish_points
     })
   } catch (err) {
