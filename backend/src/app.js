@@ -21,6 +21,8 @@ import stickersRoutes from './routes/stickers.js'
 import displayRoutes from './routes/display.js'
 import reportRoutes from './routes/report.js'
 import backupRoutes from './routes/backup.js'
+import streakRoutes from './routes/streak.js'
+import wheelRoutes from './routes/wheel.js'
 
 // 加载环境变量
 dotenv.config()
@@ -58,6 +60,8 @@ app.use(stickersRoutes.routes())
 app.use(displayRoutes.routes())
 app.use(reportRoutes.routes())
 app.use(backupRoutes.routes())
+app.use(streakRoutes.routes())
+app.use(wheelRoutes.routes())
 
 // 错误处理
 app.use(async (ctx, next) => {

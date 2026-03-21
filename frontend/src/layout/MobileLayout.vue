@@ -44,6 +44,7 @@
       </div>
       <div class="header-right">
         <span class="total-stars">🌟 累计: {{ userStore.userInfo?.totalStars || 0 }} ★</span>
+        <StreakBadge :streak="userStreak" class="header-streak" />
         <span class="current-stars">💖 余额: {{ userStore.userInfo?.stars || 0 }} ★</span>
       </div>
     </div>
@@ -62,7 +63,16 @@
         {{ item.label }}
       </van-tabbar-item>
     </van-tabbar>
+    <div class="spin-wheel-fab" @click="showSpinWheel = true" v-if="userStore.isChild">
+      <span class="fab-icon">🎰</span>
+      <span class="fab-label">转盘</span>
+    </div>
   </div>
+  <SpinWheel
+    :visible="showSpinWheel"
+    :userId="userStore.userInfo?.id"
+    @close="showSpinWheel = false"
+  />
 </template>
 
 <script setup>
@@ -73,6 +83,8 @@ import { getDisplaySettings } from '@/api/display'
 import { getAchievements } from '@/api/achievements'
 import { getStickers } from '@/api/stickers'
 import { getNewRewards } from '@/api/statistics'
+import SpinWheel from '@/components/SpinWheel.vue'
+import StreakBadge from '@/components/StreakBadge.vue'
 
 const props = defineProps({
   showHeader: { type: Boolean, default: true },
@@ -96,6 +108,8 @@ const equippedStickers = ref([])
 
 // 新奖励弹窗
 const showCongrats = ref(false)
+const showSpinWheel = ref(false)
+const userStreak = ref(0)
 const newAchievements = ref([])
 const newStickers = ref([])
 
@@ -153,6 +167,21 @@ const loadDisplayData = async () => {
     }
   } catch (e) {
     console.error('Load display data error:', e)
+  }
+}
+
+
+// 检查打卡连续天数
+const checkStreak = async () => {
+  if (!userStore.userInfo?.id || !userStore.isChild) return
+  try {
+    const res = await fetch(`/api/streak/${userStore.userInfo.id}`)
+    const data = await res.json()
+    if (data.code === 0) {
+      userStreak.value = data.data?.currentStreak || 0
+    }
+  } catch (e) {
+    console.error('Check streak error:', e)
   }
 }
 
@@ -217,6 +246,7 @@ onMounted(() => {
   timer = setInterval(updateTime, 1000)
   loadDisplayData()
   checkNewRewards()
+  checkStreak()
 })
 
 onUnmounted(() => {
@@ -478,5 +508,44 @@ onBeforeRouteUpdate((to) => {
 .pink-tabbar :deep(.van-tabbar-item__text) {
   font-size: 12px;
   font-weight: 500;
+}
+
+/* 转盘悬浮按钮 */
+.spin-wheel-fab {
+  position: fixed;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 10px 8px;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  z-index: 100;
+  cursor: pointer;
+  animation: pulse 2s infinite;
+}
+
+.fab-icon {
+  font-size: 22px;
+}
+
+.fab-label {
+  font-size: 9px;
+  font-weight: bold;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+}
+
+.header-streak {
+  margin-left: 8px;
 }
 </style>

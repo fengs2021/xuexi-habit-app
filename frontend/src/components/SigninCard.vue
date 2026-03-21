@@ -11,8 +11,8 @@
       </template>
     </van-cell>
     <van-cell>
-      <div class="calendar-wrapper">
-        <div class="calendar">
+      <div class="calendar-wrapper" ref="calendarWrapper">
+        <div class="calendar" ref="calendarRef">
           <div
             v-for="day in calendarDays"
             :key="day.date"
@@ -61,13 +61,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { getSigninInfo, checkin } from '@/api/signin'
 import { showToast } from 'vant'
 
 const userStore = useUserStore()
 const loading = ref(false)
+const calendarWrapper = ref(null)
+const calendarRef = ref(null)
 const signinInfo = ref({
   checkedIn: false,
   streakDays: 0,
@@ -83,32 +85,31 @@ const calendarDays = computed(() => {
   const year = today.getFullYear()
   const month = today.getMonth()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const firstDay = new Date(year, month, 1).getDay()
+  const todayDate = today.getDate()
   
   const days = []
   
-  // 补齐空白
-  for (let i = 0; i < firstDay; i++) {
-    days.push({ date: '', day: '', checked: false, isToday: false, isFuture: true })
-  }
+  // 以今日为中心，显示前后各几天
+  const startDay = Math.max(1, todayDate - 2)
+  const endDay = Math.min(daysInMonth, todayDate + 4)
   
   const todayStr = today.toISOString().split('T')[0]
   const checkedSet = new Set(signinInfo.value.monthDays.map(d => {
-    const date = new Date(today.getFullYear(), today.getMonth(), d)
+    const date = new Date(year, month, d)
     return date.toISOString().split('T')[0]
   }))
   
-  for (let d = 1; d <= daysInMonth; d++) {
+  for (let d = startDay; d <= endDay; d++) {
     const date = new Date(year, month, d)
     const dateStr = date.toISOString().split('T')[0]
-    const isToday = dateStr === todayStr
+    const isToday = d === todayDate
     
     days.push({
       date: dateStr,
       day: d,
       checked: checkedSet.has(dateStr),
       isToday,
-      isFuture: date > today
+      isFuture: d > todayDate
     })
   }
   
@@ -120,8 +121,24 @@ const loadInfo = async () => {
   try {
     const data = await getSigninInfo(userStore.userInfo.id)
     signinInfo.value = data
+    // 日历加载后滚动到今日
+    await nextTick()
+    scrollToToday()
   } catch (e) {
     console.error('加载签到信息失败', e)
+  }
+}
+
+const scrollToToday = () => {
+  if (!calendarWrapper.value) return
+  const todayEl = calendarRef.value?.querySelector('.today')
+  if (todayEl) {
+    const wrapperWidth = calendarWrapper.value.offsetWidth
+    const todayLeft = todayEl.offsetLeft
+    calendarWrapper.value.scrollTo({
+      left: todayLeft - wrapperWidth / 2 + todayEl.offsetWidth / 2,
+      behavior: 'smooth'
+    })
   }
 }
 
@@ -137,14 +154,12 @@ const handleCheckin = async () => {
       signinInfo.value.checkedIn = true
       signinInfo.value.streakDays = result.streakDays
       signinInfo.value.todayBonus = result.bonusStars
-      // 更新用户星星
       userStore.userInfo.stars = (userStore.userInfo.stars || 0) + result.bonusStars
       showToast({
         message: `🎉 签到成功！+${result.bonusStars}★`,
         duration: 2000
       })
     }
-    // 刷新月份日历
     await loadInfo()
   } catch (e) {
     showToast(e.message || '签到失败')
@@ -185,32 +200,41 @@ onMounted(() => {
 .calendar-wrapper {
   overflow-x: auto;
   padding: 8px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.calendar-wrapper::-webkit-scrollbar {
+  display: none;
 }
 
 .calendar {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   min-width: max-content;
+  padding: 0 4px;
 }
 
 .calendar-day {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 50%;
   background: #f5f5f5;
-  font-size: 12px;
+  font-size: 13px;
   color: #999;
   position: relative;
+  flex-shrink: 0;
 }
 
 .calendar-day.today {
   background: #FFE4E1;
   color: #FF69B4;
   font-weight: bold;
+  border: 2px solid #FF69B4;
 }
 
 .calendar-day.checked {
