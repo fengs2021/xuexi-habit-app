@@ -387,3 +387,201 @@
 - `type`: task | exchange（可选）
 - `limit`: 数量（默认 20）
 - `offset`: 偏移（默认 0）
+
+---
+
+## 统计接口
+
+### GET /api/statistics/daily-stars/:childId
+获取近30日每日积分统计
+
+**响应**
+
+
+### GET /api/statistics/daily-tasks/:childId
+获取每日任务完成详情（分页）
+
+**查询参数**
+- : 偏移量（默认 0）
+- : 每页数量（默认 7）
+
+**响应**
+
+
+### GET /api/statistics/new-rewards/:childId
+获取24小时内新获得的成就和贴纸（用于弹窗提醒）
+
+**响应**
+
+
+---
+
+## 贴纸接口
+
+### GET /api/stickers
+获取所有贴纸列表
+
+### GET /api/stickers/user/:userId
+获取用户拥有的贴纸
+
+### GET /api/stickers/user/:userId/ids
+获取用户拥有的贴纸ID列表
+
+---
+
+## 展示设置接口
+
+### GET /api/display/:userId
+获取用户展示设置
+
+### PUT /api/display/:userId
+更新用户展示设置
+
+**请求参数**
+
+
+---
+
+## 签到接口
+
+### GET /api/signin/:userId
+获取用户签到状态
+
+### POST /api/signin/:userId
+签到
+
+**响应**
+
+
+
+---
+
+## 统计接口
+
+### GET /api/statistics/daily-stars/:childId
+获取近30日每日积分统计
+
+**响应**
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "date": "3月21日",
+      "stars": 10
+    }
+  ]
+}
+```
+
+### GET /api/statistics/daily-tasks/:childId
+获取每日任务完成详情（分页）
+
+**查询参数**
+- `offset`: 偏移量（默认 0）
+- `limit`: 每页数量（默认 7）
+
+**响应**
+```json
+{
+  "code": 0,
+  "data": {
+    "items": [
+      {
+        "completed_date": "2026-03-21",
+        "title": "按时起床",
+        "icon": "todo-o",
+        "stars_earned": 5,
+        "action": "completed",
+        "star_reward": 2
+      }
+    ],
+    "totalDays": 30,
+    "hasMore": true
+  }
+}
+```
+
+### GET /api/statistics/new-rewards/:childId
+获取24小时内新获得的成就和贴纸（用于弹窗提醒）
+
+**响应**
+```json
+{
+  "code": 0,
+  "data": {
+    "achievements": [
+      {
+        "id": "uuid",
+        "name": "小试牛刀",
+        "description": "累计完成10个任务",
+        "reward_stars": 5,
+        "unlocked_at": "2026-03-20T11:26:40.946Z"
+      }
+    ],
+    "stickers": [
+      {
+        "id": "uuid",
+        "emoji": "⭐",
+        "name": "小星星",
+        "rarity": "N",
+        "earned_at": "2026-03-20T11:26:40.946Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## 贴纸接口
+
+### GET /api/stickers
+获取所有贴纸列表
+
+### GET /api/stickers/user/:userId
+获取用户拥有的贴纸
+
+### GET /api/stickers/user/:userId/ids
+获取用户拥有的贴纸ID列表
+
+---
+
+## 展示设置接口
+
+### GET /api/display/:userId
+获取用户展示设置
+
+### PUT /api/display/:userId
+更新用户展示设置
+
+**请求参数**
+```json
+{
+  "equipped_achievement_id": "成就UUID",
+  "equipped_sticker1_id": "贴纸UUID",
+  "equipped_sticker2_id": "贴纸UUID"
+}
+```
+
+---
+
+## 签到接口
+
+### GET /api/signin/:userId
+获取用户签到状态
+
+### POST /api/signin/:userId
+签到
+
+**响应**
+```json
+{
+  "code": 0,
+  "data": {
+    "signed": true,
+    "streak": 3,
+    "reward": 2
+  }
+}
+```
