@@ -3,6 +3,7 @@ import { loginParent, registerChild, getUserInfo } from '@/api/auth'
 import { setToken, removeToken } from '@/utils/auth'
 import { ROLES } from '@/utils/permission'
 import { getDisplaySettings, updateDisplaySettings } from '@/api/display'
+import { useTheme } from '@/composables/useTheme'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -21,7 +22,8 @@ export const useUserStore = defineStore('user', {
     equippedStickers: state => [
       state.displaySettings?.equippedSticker1Id,
       state.displaySettings?.equippedSticker2Id
-    ].filter(Boolean)
+    ].filter(Boolean),
+    currentTheme: state => state.displaySettings?.theme || 'pink'
   },
   actions: {
     async loginParentAction(data) {
@@ -58,22 +60,40 @@ export const useUserStore = defineStore('user', {
       try {
         const res = await getDisplaySettings(this.userInfo.id)
         this.displaySettings = res?.data || res
+        // Apply theme after loading
+        if (this.displaySettings?.theme) {
+          const { applyTheme } = useTheme()
+          applyTheme(this.displaySettings.theme)
+        }
       } catch (error) {
         console.error('loadDisplaySettings error:', error)
       }
     },
-    async updateDisplaySettingsAction(achievementId, sticker1Id, sticker2Id) {
+    async updateDisplaySettingsAction(achievementId, sticker1Id, sticker2Id, theme) {
       if (!this.userInfo?.id) return
       try {
         await updateDisplaySettings({
           userId: this.userInfo.id,
           equippedAchievementId: achievementId,
           equippedSticker1Id: sticker1Id,
-          equippedSticker2Id: sticker2Id
+          equippedSticker2Id: sticker2Id,
+          theme: theme
         })
         await this.loadDisplaySettings()
       } catch (error) {
         console.error('updateDisplaySettingsAction error:', error)
+      }
+    },
+    async updateThemeAction(theme) {
+      if (!this.userInfo?.id) return
+      try {
+        await updateDisplaySettings({
+          userId: this.userInfo.id,
+          theme: theme
+        })
+        await this.loadDisplaySettings()
+      } catch (error) {
+        console.error('updateThemeAction error:', error)
       }
     },
     setTargetReward(reward) {

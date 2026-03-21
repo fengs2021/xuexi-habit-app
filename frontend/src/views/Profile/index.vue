@@ -33,6 +33,22 @@
       <van-cell title="已选贴纸" :value="selectedStickersText || '未选择'" is-link @click="showStickerPicker = true" />
     </van-cell-group>
 
+    <!-- 主题切换 -->
+    <van-cell-group inset title="主题" class="theme-group">
+      <div class="theme-grid">
+        <div
+          v-for="theme in themes"
+          :key="theme.id"
+          class="theme-item"
+          :class="{ active: currentTheme === theme.id }"
+          :style="{ background: theme.primary }"
+          @click="changeTheme(theme.id)"
+        >
+          <span class="theme-emoji">{{ theme.name.split(' ')[0] }}</span>
+        </div>
+      </div>
+    </van-cell-group>
+
     <!-- 成就墙 -->
     <van-cell-group inset title="🏅 我的成就" class="achievement-group">
       <div class="achievement-wall-wrapper">
@@ -137,6 +153,7 @@ import { useUserStore } from '@/store/modules/user'
 import { getAchievements, getUserAchievements } from '@/api/achievements'
 import { getStickers, getUserStickers } from '@/api/stickers'
 import { exportUserData, backupFamilyData } from '@/api/backup'
+import { themes } from '@/composables/useTheme'
 import { showConfirmDialog, showToast, showLoadingToast, closeToast } from 'vant'
 
 const router = useRouter()
@@ -253,6 +270,8 @@ const levelProgress = computed(() => {
 const isAchievementEarned = (id) => earnedAchievementIds.value.includes(id)
 const isStickerOwned = (id) => ownedStickerIds.value.includes(id)
 const isStickerSelected = (id) => selectedStickers.value.some(s => s.id === id)
+
+const currentTheme = computed(() => userStore.displaySettings?.theme || 'pink')
 
 const selectedStickersText = computed(() => {
   if (selectedStickers.value.length === 0) return '未选择'
@@ -423,6 +442,11 @@ const saveDisplaySettings = async () => {
     selectedStickers.value[0]?.id || null,
     selectedStickers.value[1]?.id || null
   )
+}
+
+const changeTheme = async (themeId) => {
+  await userStore.updateThemeAction(themeId)
+  showToast('主题已切换')
 }
 
 const logout = async () => {
@@ -741,5 +765,46 @@ onMounted(() => {
 .logout-btn {
   margin: 40px 16px;
   border-radius: 22px;
+}
+
+.theme-group :deep(.van-cell-group__title) {
+  color: #FF69B4;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.theme-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  justify-content: center;
+}
+
+.theme-item {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 3px solid transparent;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.theme-item:hover {
+  transform: scale(1.1);
+}
+
+.theme-item.active {
+  border-color: #333;
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.theme-emoji {
+  font-size: 24px;
 }
 </style>
