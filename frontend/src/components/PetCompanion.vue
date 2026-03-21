@@ -1,6 +1,6 @@
 <template>
   <div class="pet-companion" @click="handleClick" :class="{ 'pet-bounce': isBouncing }">
-    <div class="pet-body" @click="handleClick">
+    <div class="pet-body">
       <div class="pet-face" :class="petMood">
         <div class="pet-eyes">
           <span class="eye eye-left"></span>

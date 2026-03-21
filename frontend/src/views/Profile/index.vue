@@ -195,7 +195,13 @@ const endLongPress = () => {
 }
 
 const sortedAchievements = computed(() => {
-  return [...allAchievements.value].sort((a, b) => getAchievementLevel(a) - getAchievementLevel(b))
+  return [...allAchievements.value].sort((a, b) => {
+    const aEarned = isAchievementEarned(a.id)
+    const bEarned = isAchievementEarned(b.id)
+    if (aEarned && !bEarned) return -1
+    if (!aEarned && bEarned) return 1
+    return getAchievementLevel(a) - getAchievementLevel(b)
+  })
 })
 
 const getFirstChineseChar = (str) => {
