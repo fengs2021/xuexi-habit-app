@@ -52,7 +52,7 @@
       <router-view />
     </div>
 
-    <van-tabbar v-if="showTabBar" v-model="activeTab" @change="onTabChange" fixed placeholder class="pink-tabbar">
+    <van-tabbar v-if="showTabBar" v-model="activeTab" @change="onTabChange" fixed placeholder class="theme-tabbar">
       <van-tabbar-item
         v-for="item in tabBarItems"
         :key="item.path"
@@ -463,20 +463,20 @@ onBeforeRouteUpdate((to) => {
   flex: 1;
   overflow-y: auto;
   padding: 12px 16px;
-  background-color: #FFF5F7;
+  background-color: var(--theme-bg, #FFF5F7);
 }
 .mobile-content.has-tabbar {
   padding-bottom: 70px;
 }
-.pink-tabbar {
-  background: linear-gradient(180deg, #FFF0F5 0%, #FFFFFF 100%) !important;
-  box-shadow: 0 -2px 10px rgba(255, 105, 180, 0.15);
+.theme-tabbar {
+  background: linear-gradient(180deg, var(--theme-bg) 0%, #FFFFFF 100%) !important;
+  box-shadow: 0 -2px 10px var(--theme-shadow, rgba(255, 105, 180, 0.15));
 }
-.pink-tabbar :deep(.van-tabbar-item) {
-  color: #C9A0A0 !important;
+.theme-tabbar :deep(.van-tabbar-item) {
+  color: var(--theme-text, #C9A0A0) !important;
 }
-.pink-tabbar :deep(.van-tabbar-item--active) {
-  color: #FF69B4 !important;
+.theme-tabbar :deep(.van-tabbar-item--active) {
+  color: var(--theme-primary, #FF69B4) !important;
 }
 .pink-tabbar :deep(.van-tabbar-item__text) {
   font-size: 12px;

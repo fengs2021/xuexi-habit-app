@@ -18,10 +18,14 @@ onMounted(() => {
   height: 100vh;
 }
 
-/* Theme CSS Variables */
+/* Theme CSS Variables - Default (Pink) */
 :root {
   --theme-primary: #FF69B4;
   --theme-secondary: #FFB6C1;
+  --theme-gradient: linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 25%, #FF69B4 50%, #FF85A2 75%, #FFB6C1 100%);
+  --theme-shadow: rgba(255, 105, 180, 0.4);
+  --theme-bg: #FFF5F7;
+  --theme-text: #C9A0A0;
 }
 
 /* Fix Vant toast text color for light backgrounds */
@@ -37,7 +41,7 @@ onMounted(() => {
   color: #323233 !important;
 }
 
-/* Theme-specific overrides */
+/* Theme-specific Vant overrides */
 .theme-pink {
   --van-primary-color: #FF69B4;
 }
