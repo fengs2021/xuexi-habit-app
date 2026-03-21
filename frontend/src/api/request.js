@@ -22,7 +22,7 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => {
     const res = response.data
-    if (res.code !== undefined && res.code !== 0) {
+    if (res.code !== undefined && res.code !== 200 && res.code !== 0) {
       showToast(res.message || '请求失败')
       if (res.code === 1002 || res.code === 401) {
         removeToken()

@@ -141,12 +141,20 @@ const onFrequencyConfirm = ({ selectedOptions }) => {
   showFrequencyPicker.value = false
 }
 
+const mapTaskFields = (task) => {
+  if (!task) return {}
+  return {
+    ...task,
+    starReward: task.star_reward ?? task.starReward ?? 1
+  }
+}
+
 const loadTasks = async () => {
   try {
     const data = await getTasks()
     
     if (userStore.isAdmin) {
-      tasks.value = data.daily || []
+      tasks.value = (data.daily || []).map(mapTaskFields)
       completedTasks.value = []
       try {
         const statusData = await getStudentTaskStatus()
@@ -155,9 +163,9 @@ const loadTasks = async () => {
         studentTaskStatus.value = []
       }
     } else {
-      dailyTasks.value = (data.daily || []).filter(t => !t.action)
-      weeklyTasks.value = (data.weekly || []).filter(t => !t.action)
-      specialTasks.value = (data.special || []).filter(t => !t.action)
+      dailyTasks.value = (data.daily || []).filter(t => !t.action).map(mapTaskFields)
+      weeklyTasks.value = (data.weekly || []).filter(t => !t.action).map(mapTaskFields)
+      specialTasks.value = (data.special || []).filter(t => !t.action).map(mapTaskFields)
     }
   } catch (error) {
     showToast('加载失败')

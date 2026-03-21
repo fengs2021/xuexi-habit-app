@@ -15,7 +15,7 @@ router.get("/daily-stars/:childId", async (ctx) => {
     const dateStr = month + "月" + day + "日"
     const dateStr2 = date.toISOString().split("T")[0]
     const res = await pool.query(
-      "SELECT COALESCE(SUM(stars_earned), 0) as stars FROM task_logs WHERE user_id = $1 AND completed_date = $2",
+      "SELECT COALESCE(SUM(stars_earned), 0) as stars FROM task_logs WHERE user_id = $1 AND completed_date = $2 AND approval_status = 'approved'",
       [childId, dateStr2]
     )
     result.push({
@@ -40,13 +40,13 @@ router.get("/daily-tasks/:childId", async (ctx) => {
       t.star_reward
     FROM task_logs tl
     JOIN tasks t ON tl.task_id = t.id
-    WHERE tl.user_id = $1
+    WHERE tl.user_id = $1 AND tl.approval_status = 'approved'
     ORDER BY tl.completed_date DESC, tl.created_at DESC
     LIMIT $2 OFFSET $3
   `, [childId, parseInt(limit), parseInt(offset)])
   
   const countRes = await pool.query(`
-    SELECT COUNT(DISTINCT completed_date) as total_days FROM task_logs WHERE user_id = $1
+    SELECT COUNT(DISTINCT completed_date) as total_days FROM task_logs WHERE user_id = $1 AND approval_status = 'approved'
   `, [childId])
   
   ctx.body = success({

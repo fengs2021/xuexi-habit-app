@@ -56,8 +56,9 @@ export async function getTasks(ctx) {
         [user.id, task.id, 'completed', checkTime.toISOString()]
       )
       if (logResult.rows.length > 0) {
-        completedInCycle = true
-        pendingApproval = logResult.rows[0].approval_status === 'pending'
+        const approvalStatus = logResult.rows[0].approval_status
+        completedInCycle = approvalStatus === 'approved'
+        pendingApproval = approvalStatus === 'pending'
       }
       
       task.completed = completedInCycle
