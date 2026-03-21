@@ -153,7 +153,7 @@ import { useUserStore } from '@/store/modules/user'
 import { getAchievements, getUserAchievements } from '@/api/achievements'
 import { getStickers, getUserStickers } from '@/api/stickers'
 import { exportUserData, backupFamilyData } from '@/api/backup'
-import { themes } from '@/composables/useTheme'
+import { themes, applyTheme } from '@/composables/useTheme'
 import { showConfirmDialog, showToast, showLoadingToast, closeToast } from 'vant'
 
 const router = useRouter()
@@ -445,6 +445,7 @@ const saveDisplaySettings = async () => {
 }
 
 const changeTheme = async (themeId) => {
+  applyTheme(themeId)
   await userStore.updateThemeAction(themeId)
   showToast('主题已切换')
 }

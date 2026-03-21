@@ -1,6 +1,5 @@
 import { ref, watch } from 'vue'
 
-// Theme definitions
 export const themes = [
   { id: 'pink', name: '🌸 粉色', primary: '#FF69B4', secondary: '#FFB6C1', gradient: 'linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 25%, #FF69B4 50%, #FF85A2 75%, #FFB6C1 100%)', shadow: 'rgba(255, 105, 180, 0.4)', bgColor: '#FFF5F7', textColor: '#C9A0A0' },
   { id: 'blue', name: '🌊 蓝色', primary: '#1989fa', secondary: '#87CEEB', gradient: 'linear-gradient(135deg, #87CEEB 0%, #ADD8E6 25%, #1989fa 50%, #5DADE2 75%, #87CEEB 100%)', shadow: 'rgba(25, 137, 250, 0.4)', bgColor: '#F0F8FF', textColor: '#6BA3D6' },
@@ -12,27 +11,24 @@ export const themes = [
 
 const currentThemeId = ref(localStorage.getItem('theme') || 'pink')
 
+export function applyTheme(themeId) {
+  const theme = themes.find(t => t.id === themeId) || themes[0]
+  currentThemeId.value = theme.id
+  localStorage.setItem('theme', theme.id)
+  
+  const root = document.documentElement
+  root.style.setProperty('--theme-primary', theme.primary)
+  root.style.setProperty('--theme-secondary', theme.secondary)
+  root.style.setProperty('--theme-gradient', theme.gradient)
+  root.style.setProperty('--theme-shadow', theme.shadow)
+  root.style.setProperty('--theme-bg', theme.bgColor)
+  root.style.setProperty('--theme-text', theme.textColor)
+  
+  document.body.className = 'theme-' + theme.id
+}
+
 export function useTheme() {
   const currentTheme = ref(themes.find(t => t.id === currentThemeId.value) || themes[0])
-  
-  const applyTheme = (themeId) => {
-    const theme = themes.find(t => t.id === themeId) || themes[0]
-    currentThemeId.value = theme.id
-    currentTheme.value = theme
-    localStorage.setItem('theme', theme.id)
-    
-    // Apply CSS variables to root
-    const root = document.documentElement
-    root.style.setProperty('--theme-primary', theme.primary)
-    root.style.setProperty('--theme-secondary', theme.secondary)
-    root.style.setProperty('--theme-gradient', theme.gradient)
-    root.style.setProperty('--theme-shadow', theme.shadow)
-    root.style.setProperty('--theme-bg', theme.bgColor)
-    root.style.setProperty('--theme-text', theme.textColor)
-    
-    // Update body class
-    document.body.className = `theme-${theme.id}`
-  }
   
   const initTheme = () => {
     applyTheme(currentThemeId.value)
