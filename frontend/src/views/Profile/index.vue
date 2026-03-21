@@ -271,7 +271,10 @@ const isAchievementEarned = (id) => earnedAchievementIds.value.includes(id)
 const isStickerOwned = (id) => ownedStickerIds.value.includes(id)
 const isStickerSelected = (id) => selectedStickers.value.some(s => s.id === id)
 
-const currentTheme = computed(() => userStore.displaySettings?.theme || 'pink')
+const currentTheme = computed(() => {
+  // First check localStorage for immediate feedback, then fallback to store
+  return localStorage.getItem('theme') || userStore.displaySettings?.theme || 'pink'
+})
 
 const selectedStickersText = computed(() => {
   if (selectedStickers.value.length === 0) return '未选择'
@@ -445,9 +448,12 @@ const saveDisplaySettings = async () => {
 }
 
 const changeTheme = async (themeId) => {
+  localStorage.setItem('theme', themeId)
   applyTheme(themeId)
   await userStore.updateThemeAction(themeId)
   showToast('主题已切换')
+  // Force update currentTheme reactive value
+  currentTheme.value = themeId
 }
 
 const logout = async () => {
