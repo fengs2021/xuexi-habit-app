@@ -36,10 +36,7 @@ export async function getTasks(ctx) {
       'SELECT * FROM tasks WHERE family_id = $1 AND is_active = true ORDER BY sort_order, created_at DESC',
       [user.family_id]
     )
-    
     const tasks = result.rows
-    
-    // Calculate cycle start time for completion check
     const now = new Date()
     let cycleStart = new Date()
     cycleStart.setHours(0, 0, 0, 0)
@@ -49,38 +46,18 @@ export async function getTasks(ctx) {
     weekStart.setDate(now.getDate() - diff)
     weekStart.setHours(0, 0, 0, 0)
     
-    // Check completion status for each task
     for (const task of tasks) {
       let completedInCycle = false
       let pendingApproval = false
+      let checkTime = task.frequency === 'daily' ? cycleStart : weekStart
       
-      if (task.frequency === 'daily') {
-        const logResult = await pool.query(
-          'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 AND created_at >= $4 ORDER BY created_at DESC LIMIT 1',
-          [user.id, task.id, 'completed', cycleStart.toISOString()]
-        )
-        if (logResult.rows.length > 0) {
-          completedInCycle = true
-          pendingApproval = logResult.rows[0].approval_status === 'pending'
-        }
-      } else if (task.frequency === 'weekly') {
-        const logResult = await pool.query(
-          'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 AND created_at >= $4 ORDER BY created_at DESC LIMIT 1',
-          [user.id, task.id, 'completed', weekStart.toISOString()]
-        )
-        if (logResult.rows.length > 0) {
-          completedInCycle = true
-          pendingApproval = logResult.rows[0].approval_status === 'pending'
-        }
-      } else if (task.frequency === 'once') {
-        const logResult = await pool.query(
-          'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 ORDER BY created_at DESC LIMIT 1',
-          [user.id, task.id, 'completed']
-        )
-        if (logResult.rows.length > 0) {
-          completedInCycle = true
-          pendingApproval = logResult.rows[0].approval_status === 'pending'
-        }
+      const logResult = await pool.query(
+        'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 AND created_at >= $4 ORDER BY created_at DESC LIMIT 1',
+        [user.id, task.id, 'completed', checkTime.toISOString()]
+      )
+      if (logResult.rows.length > 0) {
+        completedInCycle = true
+        pendingApproval = logResult.rows[0].approval_status === 'pending'
       }
       
       task.completed = completedInCycle
@@ -129,7 +106,7 @@ export async function completeTask(ctx) {
   
   try {
     const taskResult = await pool.query(
-      'SELECT * FROM tasks WHERE id =  AND family_id = ',
+      'SELECT * FROM tasks WHERE id = $1 AND family_id = $2',
       [id, user.family_id]
     )
     
@@ -140,50 +117,18 @@ export async function completeTask(ctx) {
     
     const task = taskResult.rows[0]
     
-    // Check if already completed this cycle
-    const now = new Date()
-    let cycleStart = new Date()
-    
-    if (task.frequency === 'daily') {
-      cycleStart.setHours(0, 0, 0, 0)
-    } else if (task.frequency === 'weekly') {
-      const dayOfWeek = cycleStart.getDay()
-      const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-      cycleStart.setDate(cycleStart.getDate() - diff)
-      cycleStart.setHours(0, 0, 0, 0)
-    } else if (task.frequency === 'once') {
-      const onceCheck = await pool.query(
-        'SELECT * FROM task_logs WHERE user_id =  AND task_id =  AND action =  AND approval_status != ',
-        [user.id, id, 'completed', 'rejected']
-      )
-      if (onceCheck.rows.length > 0) {
-        ctx.body = error(400, '该任务已完成')
-        return
-      }
-    }
-    
-    if (task.frequency !== 'once') {
-      const existingCompletion = await pool.query(
-        'SELECT * FROM task_logs WHERE user_id =  AND task_id =  AND action =  AND created_at >=  AND approval_status != ',
-        [user.id, id, 'completed', cycleStart.toISOString(), 'rejected']
-      )
-      if (existingCompletion.rows.length > 0) {
-        ctx.body = error(400, '本周/日已完成该任务')
-        return
-      }
-    }
-    
-    const result = await pool.query(
-      'INSERT INTO task_logs (user_id, task_id, action, stars_earned, approval_status) VALUES (, , , , ) RETURNING *',
+    await pool.query(
+      'INSERT INTO task_logs (user_id, task_id, action, stars_earned, approval_status) VALUES ($1, $2, $3, $4, $5)',
       [user.id, id, 'completed', task.star_reward, 'pending']
     )
     
-    ctx.body = success({ message: '已完成申请，请等待家长审批', log: result.rows[0] })
+    ctx.body = success({ message: '已完成申请，请等待家长审批' })
   } catch (err) {
     console.error('CompleteTask error:', err)
     ctx.body = error(500, '完成任务失败')
   }
 }
+
 export async function skipTask(ctx) {
   const user = await getUserFromToken(ctx)
   if (!user) return
@@ -201,6 +146,31 @@ export async function skipTask(ctx) {
   }
 }
 
+export async function updateTask(ctx) {
+  const user = await getUserFromToken(ctx)
+  if (!user) return
+  
+  if (user.role !== 'admin') {
+    ctx.body = error(ErrorCodes.FORBIDDEN, '无权限')
+    return
+  }
+  
+  const { id } = ctx.params
+  const { title, starReward } = ctx.request.body
+  
+  try {
+    await pool.query(
+      'UPDATE tasks SET title = $1, star_reward = $2 WHERE id = $3 AND family_id = $4',
+      [title, starReward, id, user.family_id]
+    )
+    ctx.body = success({})
+  } catch (err) {
+    console.error('UpdateTask error:', err)
+    ctx.body = error(500, '更新失败')
+  }
+}
+
+
 export async function deleteTask(ctx) {
   const user = await getUserFromToken(ctx)
   if (!user) return
@@ -212,5 +182,82 @@ export async function deleteTask(ctx) {
     ctx.body = success({ message: '已删除' })
   } catch (err) {
     ctx.body = error(500, '删除失败')
+  }
+}
+
+export async function getStudentTaskStatus(ctx) {
+  const user = await getUserFromToken(ctx)
+  if (!user) return
+  
+  if (user.role !== 'admin') {
+    ctx.body = error(ErrorCodes.FORBIDDEN, '无权限')
+    return
+  }
+  
+  try {
+    const logsResult = await pool.query(
+      'SELECT tl.*, u.nickname as user_nickname, t.title as task_title, t.star_reward FROM task_logs tl JOIN users u ON tl.user_id = u.id JOIN tasks t ON tl.task_id = t.id WHERE u.family_id = $1 AND tl.action = $2 ORDER BY tl.created_at DESC LIMIT 50',
+      [user.family_id, 'completed']
+    )
+    ctx.body = success(logsResult.rows)
+  } catch (err) {
+    console.error('GetStudentTaskStatus error:', err)
+    ctx.body = error(500, '获取失败')
+  }
+}
+
+export async function approveTaskLog(ctx) {
+  const user = await getUserFromToken(ctx)
+  if (!user) return
+  
+  if (user.role !== 'admin') {
+    ctx.body = error(ErrorCodes.FORBIDDEN, '无权限')
+    return
+  }
+  
+  const { id } = ctx.params
+  const { approved, taskType } = ctx.request.body
+  
+  try {
+    const logResult = await pool.query('SELECT * FROM task_logs WHERE id = $1', [id])
+    if (logResult.rows.length === 0) {
+      ctx.body = error(404, '记录不存在')
+      return
+    }
+    
+    const log = logResult.rows[0]
+    
+    await pool.query(
+      'UPDATE task_logs SET approval_status = $1 WHERE id = $2',
+      [approved ? 'approved' : 'rejected', id]
+    )
+    
+    let stickerResult = null
+    let newAchievements = []
+    
+    if (approved) {
+      await pool.query(
+        'UPDATE users SET stars = stars + $1 WHERE id = $2',
+        [log.stars_earned || 1, log.user_id]
+      )
+      
+      // 导入奖励函数并发放贴纸
+      try {
+        const { awardRandomSticker, checkAndAwardAchievements } = await import('./rewards.js')
+        stickerResult = await awardRandomSticker(log.user_id, taskType || 'daily')
+        newAchievements = await checkAndAwardAchievements(log.user_id)
+      } catch (e) {
+        console.error('Award error:', e)
+      }
+    }
+    
+    ctx.body = success({ 
+      message: approved ? '已批准' : '已拒绝',
+      sticker: stickerResult,
+      newAchievements: newAchievements
+    })
+  } catch (err) {
+    console.error('ApproveTaskLog error:', err)
+    ctx.body = error(500, '操作失败')
   }
 }

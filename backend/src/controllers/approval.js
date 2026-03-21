@@ -171,7 +171,12 @@ export async function approveExchange(ctx) {
     await pool.query('UPDATE exchange_logs SET status = $1, approved_by = $2, approved_at = NOW() WHERE id = $3',
       [approved ? 'approved' : 'rejected', user.id, id])
     
-    if (!approved) {
+    if (approved) {
+      // 审批通过，扣除学生积分
+      await pool.query('UPDATE users SET stars = stars - $1 WHERE id = $2',
+        [exchange.stars_spent, exchange.user_id])
+    } else {
+      // 审批拒绝，返还学生积分
       await pool.query('UPDATE users SET stars = stars + $1 WHERE id = $2',
         [exchange.stars_spent, exchange.user_id])
     }

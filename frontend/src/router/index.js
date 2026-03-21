@@ -53,6 +53,12 @@ const asyncRoutes = [
         meta: { title: '家庭', icon: 'friends-o', roles: [ROLES.ADMIN, ROLES.CHILD] }
       },
       {
+        path: 'statistics',
+        name: 'Statistics',
+        component: () => import('@/views/Statistics/index.vue'),
+        meta: { title: '统计', icon: 'chart-trending-o', roles: [ROLES.ADMIN, ROLES.CHILD] }
+      },
+      {
         path: 'profile',
         name: 'Profile',
         component: () => import('@/views/Profile/index.vue'),

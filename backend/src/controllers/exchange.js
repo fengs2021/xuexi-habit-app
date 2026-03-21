@@ -277,3 +277,34 @@ export async function getExchangeHistory(ctx) {
     ctx.body = error(500, '获取历史失败')
   }
 }
+
+// 获取所有孩子的兑换记录（家长视图）
+export async function getStudentHistory(ctx) {
+  const authHeader = ctx.headers.authorization
+  if (!authHeader) {
+    ctx.body = error(ErrorCodes.NOT_LOGIN, '未登录')
+    return
+  }
+  
+  try {
+    const token = authHeader.replace('Bearer ', '')
+    const decoded = jwt.verify(token, JWT_SECRET)
+    
+    // 家长才能查看
+    if (decoded.role !== 'admin') {
+      ctx.body = error(ErrorCodes.NO_PERMISSION, '无权限')
+      return
+    }
+    
+    const result = await pool.query(
+      'SELECT e.*, u.nickname as user_nickname, r.title as reward_title, r.star_cost FROM exchange_logs e JOIN users u ON e.user_id = u.id JOIN rewards r ON e.reward_id = r.id WHERE u.family_id = $1 ORDER BY e.created_at DESC LIMIT 50',
+      [decoded.familyId]
+    )
+    
+    ctx.body = success(result.rows)
+  } catch (err) {
+    console.error('GetStudentHistory error:', err)
+    ctx.body = error(500, '获取失败')
+  }
+}
+

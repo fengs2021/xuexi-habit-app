@@ -12,8 +12,12 @@ import taskRoutes from './routes/tasks.js'
 import rewardRoutes from './routes/rewards.js'
 import exchangeRoutes from './routes/exchanges.js'
 import achievementRoutes from './routes/achievements.js'
+import signinRoutes from './routes/signin.js'
 import approvalRoutes from './routes/approvals.js'
 import logRoutes from './routes/logs.js'
+import statisticsRoutes from './routes/statistics.js'
+import stickersRoutes from './routes/stickers.js'
+import displayRoutes from './routes/display.js'
 
 // 加载环境变量
 dotenv.config()
@@ -42,8 +46,12 @@ app.use(taskRoutes.routes())
 app.use(rewardRoutes.routes())
 app.use(exchangeRoutes.routes())
 app.use(achievementRoutes.routes())
+app.use(signinRoutes.routes())
 app.use(logRoutes.routes())
 app.use(approvalRoutes.routes())
+app.use(statisticsRoutes.routes())
+app.use(stickersRoutes.routes())
+app.use(displayRoutes.routes())
 
 // 错误处理
 app.use(async (ctx, next) => {

@@ -11,3 +11,7 @@ export function createReward(data) {
 export function createExchange(data) {
   return request({ url: '/exchanges', method: 'POST', data })
 }
+
+export function getStudentExchanges() {
+  return request({ url: '/exchanges/student-history', method: 'GET' })
+}

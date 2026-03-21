@@ -9,8 +9,10 @@
       <van-cell
         v-for="member in familyInfo?.members || []"
         :key="member.id"
-        :title="member.nickname"
+        :title="member.role === 'admin' ? member.nickname : member.nickname"
         :label="member.role === 'admin' ? '家长' : '学生'"
+        :is-link="member.role !== 'admin'"
+        @click="member.role !== 'admin' && goToStatistics(member)"
       >
         <template #right-icon>
           <div class="member-actions">
@@ -20,32 +22,56 @@
               size="small" 
               type="danger" 
               plain
-              @click="removeMember(member)"
+              @click="handleRemove(member)"
             >
               删除
             </van-button>
           </div>
         </template>
       </van-cell>
+      <van-cell v-if="userStore.isAdmin">
+        <van-button type="primary" block @click="showAddDialog = true">添加学生成员</van-button>
+      </van-cell>
     </van-cell-group>
+
+    <van-dialog v-model:show="showAddDialog" title="添加学生成员" show-cancel-button @confirm="handleAddChild">
+      <van-form>
+        <van-field v-model="newChildNickname" label="昵称" placeholder="请输入学生昵称" />
+      </van-form>
+    </van-dialog>
+
+    <van-dialog v-model:show="showRemoveDialog" title="移除成员" show-cancel-button @confirm="confirmRemove">
+      <div style="padding: 16px;">确定要将 {{ pendingRemove?.nickname }} 从家庭中移除吗？</div>
+    </van-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { getFamily } from '@/api/family'
 import { showToast, showConfirmDialog } from 'vant'
-import axios from 'axios'
+import request from '@/api/request'
 
 const userStore = useUserStore()
+const router = useRouter()
 const familyInfo = ref(null)
+const showAddDialog = ref(false)
+const newChildNickname = ref('')
+const showRemoveDialog = ref(false)
+const pendingRemove = ref(null)
+
+const goToStatistics = (member) => {
+  router.push({ path: '/statistics', query: { childId: member.id, name: member.nickname } })
+}
 
 const loadFamily = async () => {
   try {
     const data = await getFamily()
     familyInfo.value = data
   } catch (error) {
+    console.error('加载家庭信息失败:', error)
     showToast('加载失败')
   }
 }
@@ -57,27 +83,40 @@ const copyCode = async () => {
   }
 }
 
-const removeMember = async (member) => {
+const handleAddChild = async () => {
+  if (!newChildNickname.value.trim()) {
+    showToast('请输入昵称')
+    return
+  }
   try {
-    await showConfirmDialog({
-      title: '确认移除',
-      message: '确定要将 ' + member.nickname + ' 从家庭中移除吗？'
-    })
-    await axios.delete('/api/family/member/' + member.id)
-    showToast('已移除')
-    await loadFamily()
+    const res = await request({ url: '/family/child', method: 'POST', data: { nickname: newChildNickname.value } })
+    showToast('添加成功')
+    newChildNickname.value = ''
+    loadFamily()
   } catch (error) {
-    if (error !== 'cancel') {
-      showToast('移除失败')
-    }
+    showToast('添加失败')
   }
 }
 
-onMounted(async () => {
-  if (!userStore.userInfo) {
-    await userStore.getUserInfoAction()
+const handleRemove = async (member) => {
+  pendingRemove.value = member
+  showRemoveDialog.value = true
+}
+
+const confirmRemove = async () => {
+  if (!pendingRemove.value) return
+  try {
+    await request({ url: '/family/member/' + pendingRemove.value.id, method: 'DELETE' })
+    showToast('移除成功')
+    pendingRemove.value = null
+    loadFamily()
+  } catch (error) {
+    showToast('移除失败')
   }
-  await loadFamily()
+}
+
+onMounted(() => {
+  loadFamily()
 })
 </script>
 

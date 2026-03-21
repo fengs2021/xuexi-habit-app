@@ -1,5 +1,6 @@
 <template>
   <div class="exchange-page">
+    
     <van-tabs v-model:active="activeTab">
       <van-tab title="待审批" :badge="pendingCount || null">
         <!-- 任务完成审批 -->
@@ -14,7 +15,7 @@
             </template>
             <template #label>
               <span class="reward">+{{ item.stars_earned || item.star_reward }} ★</span>
-              <span class="time">{{ formatTime(item.created_at) }}</span>
+              <span class="time">{{ formatDateTime(item.created_at) }}</span>
             </template>
             <template #right-icon>
               <van-button size="small" type="success" @click="approveTask(item.id, true)">同意</van-button>
@@ -36,7 +37,7 @@
             </template>
             <template #label>
               <span class="reward">-{{ item.stars_spent || item.star_cost }} ★</span>
-              <span class="time">{{ formatTime(item.created_at) }}</span>
+              <span class="time">{{ formatDateTime(item.created_at) }}</span>
             </template>
             <template #right-icon>
               <van-button size="small" type="success" @click="approveExchange(item.id, true)">同意</van-button>
@@ -61,6 +62,7 @@
                 {{ item.approval_status === 'approved' ? '已批准' : '已拒绝' }}
               </van-tag>
               <span class="reward" v-if="item.approval_status === 'approved'">+{{ item.stars_earned }} ★</span>
+              <span class="time">{{ formatDateTime(item.created_at) }}</span>
             </template>
             <template #right-icon>
               <van-button size="small" type="warning" @click="reverseApproval(item.id, 'task')">撤销</van-button>
@@ -82,6 +84,7 @@
                 {{ item.status === 'approved' ? '已批准' : '已拒绝' }}
               </van-tag>
               <span class="reward" v-if="item.status === 'approved'">-{{ item.stars_spent }} ★</span>
+              <span class="time">{{ formatDateTime(item.created_at) }}</span>
             </template>
             <template #right-icon>
               <van-button size="small" type="warning" @click="reverseApproval(item.id, 'exchange')" v-if="item.status !== 'pending'">撤销</van-button>
@@ -98,6 +101,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { getPendingApprovals, getApprovalHistory, approveTask as approveTaskApi, approveExchange as approveExchangeApi, reverseApproval as reverseApprovalApi } from '@/api/approval'
+
 import { showToast, showConfirmDialog } from 'vant'
 
 const userStore = useUserStore()
@@ -163,12 +167,13 @@ const reverseApproval = async (id, type) => {
   }
 }
 
-const formatTime = (time) => {
+const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+
+const formatDateTime = (time) => {
   if (!time) return ''
   const d = new Date(time)
-  return `${d.getMonth()+1}-${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`
+  return d.getMonth() + 1 + '月' + d.getDate() + '日 ' + weekdays[d.getDay()] + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
 }
-
 onMounted(() => {
   loadPending()
   loadHistory()

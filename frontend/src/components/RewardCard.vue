@@ -6,7 +6,7 @@
     </div>
     <div class="reward-actions">
       <van-button
-        v-if="userStore.isChild && !isCurrentTarget"
+        v-if="showExchange && userStore.isChild && !isCurrentTarget"
         size="small"
         type="warning"
         @click.stop="$emit('setTarget', reward)"
@@ -14,19 +14,19 @@
         设为目标
       </van-button>
       <van-button
-        v-else-if="userStore.isChild && isCurrentTarget"
+        v-else-if="showExchange && userStore.isChild && isCurrentTarget"
         size="small"
         type="default"
-        @click.stop="$emit('clearTarget')"
+        @click.stop="('clearTarget')"
       >
         取消目标
       </van-button>
-      <van-tag v-else-if="reward.status === 'exchanged'" type="success">已兑换</van-tag>
+      <van-tag v-if="!showExchange && reward.status === 'exchanged'" type="success">已兑换</van-tag>
       <van-button
-        v-else
+        v-if="showExchange"
         size="small"
         type="primary"
-        @click.stop="$emit('exchange', reward.id)"
+        @click.stop="handleExchange"
         :loading="loading"
       >
         兑换
@@ -38,15 +38,29 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useUserStore } from '@/store/modules/user'
+import { showToast } from 'vant'
 
 const props = defineProps({
   reward: Object,
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
+  showExchange: { type: Boolean, default: true }
 })
-defineEmits(['exchange', 'setTarget', 'clearTarget'])
+const emit = defineEmits(['exchange', 'setTarget', 'clearTarget'])
 
 const userStore = useUserStore()
 const isCurrentTarget = computed(() => userStore.targetReward?.id === props.reward.id)
+
+const handleExchange = () => {
+  const cost = props.reward.starCost || props.reward.star_cost
+  const currentStars = userStore.userInfo?.stars || 0
+  
+  if (currentStars < cost) {
+    showToast('分数不够，继续努力')
+    return
+  }
+  
+  emit('exchange', props.reward.id)
+}
 </script>
 
 <style scoped>

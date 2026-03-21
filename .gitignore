@@ -46,3 +46,6 @@ dump.rdb
 
 # Frontend specific
 *.local
+
+# Nginx html (build output)
+nginx/html/

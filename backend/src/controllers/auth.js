@@ -156,18 +156,19 @@ export async function loginParent(ctx) {
 }
 
 export async function loginDevice(ctx) {
-  const { deviceId } = ctx.request.body
-  if (!deviceId) {
-    ctx.body = error(ErrorCodes.PARAM_ERROR, '设备ID为必填项')
+  const { deviceId, userId } = ctx.request.body
+  if (!deviceId && !userId) {
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '设备ID或用户ID为必填项')
     return
   }
   try {
+    const queryId = deviceId || userId
     const userResult = await pool.query(
-      'SELECT u.*, f.name as family_name FROM users u LEFT JOIN family f ON u.family_id = f.id WHERE u.openid = $1',
-      [deviceId]
+      'SELECT u.*, f.name as family_name FROM users u LEFT JOIN family f ON u.family_id = f.id WHERE u.id = $1',
+      [queryId]
     )
     if (userResult.rows.length === 0) {
-      ctx.body = error(2001, '设备未注册')
+      ctx.body = error(2001, '用户不存在')
       return
     }
     const user = userResult.rows[0]
@@ -235,6 +236,14 @@ export async function me(ctx) {
       return
     }
     const user = userResult.rows[0]
+    
+    // Calculate total earned stars from approved task completions
+    const totalEarnedResult = await pool.query(
+      'SELECT COALESCE(SUM(stars_earned), 0) as total FROM task_logs WHERE user_id = $1 AND action = $2 AND approval_status = $3',
+      [user.id, 'completed', 'approved']
+    )
+    const totalEarned = parseInt(totalEarnedResult.rows[0]?.total || 0)
+    
     ctx.body = success({
       id: user.id,
       nickname: user.nickname,
@@ -244,6 +253,7 @@ export async function me(ctx) {
       familyName: user.family_name,
       level: user.level,
       stars: user.stars,
+      totalStars: totalEarned,
       wishPoints: user.wish_points
     })
   } catch (err) {

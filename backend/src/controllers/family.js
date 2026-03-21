@@ -102,6 +102,45 @@ export async function getChildren(ctx) {
   }
 }
 
+export async function addChild(ctx) {
+  const authHeader = ctx.headers.authorization
+  if (!authHeader) {
+    ctx.body = error(ErrorCodes.NOT_LOGIN, '未登录')
+    return
+  }
+  try {
+    const token = authHeader.replace('Bearer ', '')
+    const decoded = jwt.verify(token, JWT_SECRET)
+    const { nickname } = ctx.request.body
+
+    if (!['admin'].includes(decoded.role)) {
+      ctx.body = error(ErrorCodes.NO_PERMISSION, '无权限')
+      return
+    }
+
+    if (!nickname) {
+      ctx.body = error(ErrorCodes.PARAM_ERROR, '昵称为必填项')
+      return
+    }
+
+    const deviceId = 'device_' + Math.random().toString(36).substr(2, 12)
+    const userResult = await pool.query(
+      'INSERT INTO users (family_id, openid, nickname, role, level, stars) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [decoded.familyId, deviceId, nickname, 'child', 1, 0]
+    )
+    const user = userResult.rows[0]
+    ctx.body = success({
+      id: user.id,
+      nickname: user.nickname,
+      role: user.role,
+      deviceId
+    })
+  } catch (err) {
+    console.error('AddChild error:', err)
+    ctx.body = error(500, '添加成员失败')
+  }
+}
+
 export async function removeMember(ctx) {
   const authHeader = ctx.headers.authorization
   if (!authHeader) {
@@ -123,9 +162,11 @@ export async function removeMember(ctx) {
       return
     }
 
-    // Delete related records first
+    // Delete related records first (order matters due to foreign keys)
     await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1', [memberId])
     await pool.query('DELETE FROM task_logs WHERE user_id = $1', [memberId])
+    // Delete exchange_approvals first (references exchange_logs)
+    await pool.query('DELETE FROM exchange_approvals WHERE exchange_id IN (SELECT id FROM exchange_logs WHERE user_id = $1)', [memberId])
     await pool.query('DELETE FROM exchange_logs WHERE user_id = $1', [memberId])
     await pool.query('DELETE FROM users WHERE id = $1 AND family_id = $2', [memberId, decoded.familyId])
     ctx.body = success({})
