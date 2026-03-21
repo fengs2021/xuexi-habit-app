@@ -6,28 +6,38 @@ const router = new Router({ prefix: '/api/display' })
 
 router.get('/settings/:userId', async (ctx) => {
   const { userId } = ctx.params
-  const result = await pool.query(
-    'SELECT * FROM user_display_settings WHERE user_id = $1',
-    [userId]
-  )
-  ctx.body = success(result.rows[0] || null)
+  try {
+    const result = await pool.query(
+      'SELECT * FROM user_display_settings WHERE user_id = $1',
+      [userId]
+    )
+    ctx.body = success(result.rows[0] || null)
+  } catch (err) {
+    ctx.body = { code: 500, message: err.message }
+  }
 })
 
 router.put('/settings', async (ctx) => {
-  const { userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme } = ctx.request.body
-  
-  await pool.query(
-    `INSERT INTO user_display_settings (user_id, equipped_achievement_id, equipped_sticker1_id, equipped_sticker2_id, theme, updated_at)
-     VALUES ($1, $2, $3, $4, $5, NOW())
+  const { userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme, pet } = ctx.request.body
+  console.log('PUT settings:', { userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme, pet })
+  try {
+    await pool.query(
+      `INSERT INTO user_display_settings (user_id, equipped_achievement_id, equipped_sticker1_id, equipped_sticker2_id, theme, pet, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, NOW())
      ON CONFLICT (user_id) DO UPDATE SET
        equipped_achievement_id = $2,
        equipped_sticker1_id = $3,
        equipped_sticker2_id = $4,
        theme = $5,
+       pet = COALESCE($6, user_display_settings.pet),
        updated_at = NOW()`,
-    [userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme || 'pink']
-  )
-  ctx.body = success({ success: true })
+      [userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme || 'pink', pet]
+    )
+    ctx.body = success({ success: true })
+  } catch (err) {
+    console.error('PUT settings error:', err)
+    ctx.body = { code: 500, message: err.message }
+  }
 })
 
 export default router
