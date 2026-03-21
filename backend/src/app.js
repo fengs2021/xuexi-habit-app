@@ -19,6 +19,7 @@ import logRoutes from './routes/logs.js'
 import statisticsRoutes from './routes/statistics.js'
 import stickersRoutes from './routes/stickers.js'
 import displayRoutes from './routes/display.js'
+import reportRoutes from './routes/report.js'
 import backupRoutes from './routes/backup.js'
 
 // 加载环境变量
@@ -55,6 +56,7 @@ app.use(approvalRoutes.routes())
 app.use(statisticsRoutes.routes())
 app.use(stickersRoutes.routes())
 app.use(displayRoutes.routes())
+app.use(reportRoutes.routes())
 app.use(backupRoutes.routes())
 
 // 错误处理
