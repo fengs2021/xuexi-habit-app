@@ -138,6 +138,7 @@ const approveTask = async (id, approved) => {
     await approveTaskApi(id, { approved })
     showToast(approved ? '已批准' : '已拒绝')
     await loadPending()
+    await loadHistory()  // 刷新已处理列表
   } catch (error) {
     showToast('操作失败')
   }

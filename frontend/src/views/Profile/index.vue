@@ -174,17 +174,39 @@ const levels = [
   { level: 11, name: '💎 宇宙之星', stars: 10000, icon: '💎' }
 ]
 
+// 难度等级对应边框颜色
+const difficultyColors = {
+  1: '#9CA3AF',  // 灰色 - 入门
+  2: '#10B981',  // 绿色 - 初级
+  3: '#3B82F6',  // 蓝色 - 中级
+  4: '#8B5CF6',  // 紫色 - 困难
+  5: '#F59E0B'   // 金色 - 极难
+}
+
 const getAchievementLevel = (achievement) => {
+  // 优先使用数据库中的 difficulty 字段
+  if (achievement && achievement.difficulty) {
+    return achievement.difficulty
+  }
+  // 兼容旧逻辑
   if (!achievement) return 1
   const type = achievement.type || ''
-  const name = achievement.name || ''
-  if (type.includes('level_') || name.includes('级')) return 5
+  if (type.includes('level_')) return 5
   if (type.includes('task_count_100') || type.includes('star_total_200') || 
-      type.includes('goal_completed_3') || type.includes('sticker_count_30')) return 4
+      type.includes('goal_completed_3') || type.includes('sticker_count_30') ||
+      type.includes('streak_task_60')) return 5
   if (type.includes('task_count_50') || type.includes('star_total_50') || 
-      type.includes('sticker_count_10')) return 3
-  if (type.includes('task_count_10') || type.includes('goal_completed_1')) return 2
+      type.includes('sticker_count_10') || type.includes('streak_task_30')) return 4
+  if (type.includes('task_count_10') || type.includes('goal_completed_1') ||
+      type.includes('streak_task_15') || type.includes('count_task_60')) return 3
+  if (type.includes('task_count_5') || type.includes('streak_task_7') ||
+      type.includes('count_task_30')) return 2
   return 1
+}
+
+const getDifficultyColor = (achievement) => {
+  const level = getAchievementLevel(achievement)
+  return difficultyColors[level] || difficultyColors[1]
 }
 
 const allAchievements = ref([])
@@ -546,25 +568,28 @@ onMounted(() => {
 .achievement-item.earned {
   background: linear-gradient(135deg, #FFF0F5 0%, #FFE4EC 100%);
 }
-.achievement-item.level-1, .achievement-item.level-2 {
-  border-color: #CD7F32;
+.achievement-item.level-1 {
+  border-color: #9CA3AF;
+}
+.achievement-item.level-2 {
+  border-color: #10B981;
 }
 .achievement-item.level-3 {
-  border-color: #C0C0C0;
-  box-shadow: 0 0 8px rgba(192, 192, 192, 0.4);
+  border-color: #3B82F6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
 }
 .achievement-item.level-4 {
-  border-color: #FFD700;
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+  border-color: #8B5CF6;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
 }
 .achievement-item.level-5 {
-  border-color: #E066FF;
-  box-shadow: 0 0 15px rgba(224, 102, 255, 0.6);
+  border-color: #F59E0B;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
   animation: achievementGlow 2s ease-in-out infinite;
 }
 @keyframes achievementGlow {
-  0%, 100% { box-shadow: 0 0 15px rgba(224, 102, 255, 0.6); }
-  50% { box-shadow: 0 0 25px rgba(224, 102, 255, 0.8); }
+  0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.6); }
+  50% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.9); }
 }
 .achievement-icon {
   font-size: 28px;

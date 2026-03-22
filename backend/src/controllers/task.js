@@ -49,6 +49,14 @@ export async function getTasks(ctx) {
     for (const task of tasks) {
       let completedInCycle = false
       let pendingApproval = false
+      
+      // 特殊任务(once)可以反复完成，不需要检查完成状态
+      if (task.frequency === 'once') {
+        task.completed = false
+        task.pendingApproval = false
+        continue
+      }
+      
       let checkTime = task.frequency === 'daily' ? cycleStart : weekStart
       
       const logResult = await pool.query(
