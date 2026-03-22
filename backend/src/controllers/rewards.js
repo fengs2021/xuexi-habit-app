@@ -66,6 +66,38 @@ export async function checkAndAwardAchievements(userId) {
   `, [userId])
   const stats = statsResult.rows[0]
   
+  // 计算每个任务的连续完成天数
+  const taskStreaksResult = await pool.query(`
+    WITH task_days AS (
+      SELECT task_id, DATE(completed_date) as task_date
+      FROM task_logs
+      WHERE user_id = $1 AND action = 'completed' AND completed_date IS NOT NULL
+      GROUP BY task_id, DATE(completed_date)
+    ),
+    task_streaks AS (
+      SELECT task_id, task_date, task_date - ROW_NUMBER() OVER (PARTITION BY task_id ORDER BY task_date DESC)::int as grp
+      FROM task_days
+    ),
+    max_streaks AS (
+      SELECT task_id, COUNT(*) as streak_days
+      FROM task_streaks
+      GROUP BY task_id, grp
+    )
+    SELECT MAX(streak_days) as max_streak FROM max_streaks
+  `, [userId])
+  const maxTaskStreak = parseInt(taskStreaksResult.rows[0]?.max_streak || 0)
+  
+  // 计算单个任务最高累计完成次数
+  const taskCountResult = await pool.query(`
+    SELECT task_id, COUNT(*) as cnt
+    FROM task_logs
+    WHERE user_id = $1 AND action = 'completed'
+    GROUP BY task_id
+    ORDER BY cnt DESC
+    LIMIT 1
+  `, [userId])
+  const maxTaskCount = taskCountResult.rows.length > 0 ? parseInt(taskCountResult.rows[0].cnt) : 0
+  
   // 计算连续登录天数
   const loginStreakResult = await pool.query(`
     WITH days AS (
@@ -147,6 +179,16 @@ export async function checkAndAwardAchievements(userId) {
     // 早鸟/夜猫子
     else if (type === 'early_bird' && hasEarlyBird) shouldAward = true
     else if (type === 'night_owl' && hasNightOwl) shouldAward = true
+    // 单项任务连续达成
+    else if (type === 'streak_task_7' && maxTaskStreak >= 7) shouldAward = true
+    else if (type === 'streak_task_15' && maxTaskStreak >= 15) shouldAward = true
+    else if (type === 'streak_task_30' && maxTaskStreak >= 30) shouldAward = true
+    else if (type === 'streak_task_60' && maxTaskStreak >= 60) shouldAward = true
+    // 单项任务累计完成
+    else if (type === 'count_task_10' && maxTaskCount >= 10) shouldAward = true
+    else if (type === 'count_task_30' && maxTaskCount >= 30) shouldAward = true
+    else if (type === 'count_task_60' && maxTaskCount >= 60) shouldAward = true
+    else if (type === 'count_task_100' && maxTaskCount >= 100) shouldAward = true
     
     if (shouldAward) {
       await pool.query(
