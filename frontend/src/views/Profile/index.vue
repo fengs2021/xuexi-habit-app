@@ -29,6 +29,7 @@
 
     <!-- 展示设置 -->
     <van-cell-group inset title="🎀 我的展示" class="display-group" v-if="userStore.isChild">
+      <van-cell title="头像" is-link @click="showAvatarPicker = true" />
       <van-cell title="已选徽章" :value="selectedAchievement?.name || '未选择'" is-link @click="showAchievementPicker = true" />
       <van-cell title="已选贴纸" :value="selectedStickersText || '未选择'" is-link @click="showStickerPicker = true" />
     </van-cell-group>
@@ -143,18 +144,30 @@
         <van-button type="default" block @click="showStickerPicker = false" style="margin-top: 8px;">取消</van-button>
       </div>
     </van-popup>
+
+    <!-- 头像选择弹窗 -->
+    <van-popup v-model:show="showAvatarPicker" position="bottom" round>
+      <div class="picker-popup">
+        <div class="picker-header">选择头像</div>
+        <AvatarPicker v-model="selectedAvatarId" />
+        <van-button type="default" block @click="showAvatarPicker = false" style="margin-top: 8px;">取消</van-button>
+      </div>
+    </van-popup>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { getAchievements, getUserAchievements } from '@/api/achievements'
 import { getStickers, getUserStickers } from '@/api/stickers'
+import { getAvatars } from '@/api/avatar'
+import { updateDisplaySettings } from '@/api/display'
 import { exportUserData, backupFamilyData } from '@/api/backup'
 import { themes, applyTheme } from '@/composables/useTheme'
 import { showConfirmDialog, showToast, showLoadingToast, closeToast } from 'vant'
+import AvatarPicker from '@/components/AvatarPicker.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -220,6 +233,8 @@ const selectedAchievement = ref(null)
 const selectedStickers = ref([])
 const showAchievementPicker = ref(false)
 const showStickerPicker = ref(false)
+const showAvatarPicker = ref(false)
+const selectedAvatarId = ref(null)
 
 const showAchievementTip = ref(false)
 const tipAchievement = ref(null)
@@ -393,7 +408,27 @@ const loadData = async () => {
         )
         if (s2 && !selectedStickers.value.find(x => x.id === s2.id)) selectedStickers.value.push(s2)
       }
+      
+      // 加载头像
+      if (userStore.displaySettings?.avatar_id) {
+        selectedAvatarId.value = userStore.displaySettings.avatar_id
+      }
     }
+    
+    // 监听头像变化
+    watch(selectedAvatarId, async (newId) => {
+      if (newId && userStore.userInfo?.id) {
+        try {
+          await updateDisplaySettings({
+            userId: userStore.userInfo.id,
+            avatarId: newId
+          })
+          showToast({ message: '头像已更新', duration: 1500 })
+        } catch (e) {
+          console.error('Failed to update avatar:', e)
+        }
+      }
+    })
     
     // 加载贴纸
     const stickerRes = await getStickers()

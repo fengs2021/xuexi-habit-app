@@ -3,6 +3,7 @@ import Router from 'koa-router'
 import cors from '@koa/cors'
 import bodyParser from 'koa-bodyparser'
 import dotenv from 'dotenv'
+import serve from 'koa-static'
 
 // 路由
 import authRoutes from './routes/auth.js'
@@ -23,6 +24,7 @@ import reportRoutes from './routes/report.js'
 import backupRoutes from './routes/backup.js'
 import streakRoutes from './routes/streak.js'
 import wheelRoutes from './routes/wheel.js'
+import avatarRoutes from './routes/avatars.js'
 
 // 加载环境变量
 dotenv.config()
@@ -62,6 +64,10 @@ app.use(reportRoutes.routes())
 app.use(backupRoutes.routes())
 app.use(streakRoutes.routes())
 app.use(wheelRoutes.routes())
+app.use(avatarRoutes.routes())
+
+// 静态文件服务 (头像)
+app.use(serve('./public', { maxage: 86400000 }))
 
 // 错误处理
 app.use(async (ctx, next) => {

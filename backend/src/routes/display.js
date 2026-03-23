@@ -18,20 +18,21 @@ router.get('/settings/:userId', async (ctx) => {
 })
 
 router.put('/settings', async (ctx) => {
-  const { userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme, pet } = ctx.request.body
-  console.log('PUT settings:', { userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme, pet })
+  const { userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme, pet, avatarId } = ctx.request.body
+  console.log('PUT settings:', { userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme, pet, avatarId })
   try {
     await pool.query(
-      `INSERT INTO user_display_settings (user_id, equipped_achievement_id, equipped_sticker1_id, equipped_sticker2_id, theme, pet, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `INSERT INTO user_display_settings (user_id, equipped_achievement_id, equipped_sticker1_id, equipped_sticker2_id, theme, pet, avatar_id, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
      ON CONFLICT (user_id) DO UPDATE SET
        equipped_achievement_id = $2,
        equipped_sticker1_id = $3,
        equipped_sticker2_id = $4,
        theme = $5,
        pet = COALESCE($6, user_display_settings.pet),
+       avatar_id = COALESCE($7, user_display_settings.avatar_id),
        updated_at = NOW()`,
-      [userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme || 'pink', pet]
+      [userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme || 'pink', pet, avatarId]
     )
     ctx.body = success({ success: true })
   } catch (err) {
