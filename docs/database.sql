@@ -196,3 +196,53 @@ INSERT INTO achievement_definitions (type, name, description, condition_data, re
     ('level_5', '五级玩家', '达到5级', '{"level": 5}', 25),
     ('level_10', '十级玩家', '达到10级', '{"level": 10}', 50)
 ON CONFLICT (type) DO NOTHING;
+
+-- =============================================
+-- v1.2.0 新增/修改表
+-- =============================================
+
+-- 补全签到表字段
+ALTER TABLE user_signins ADD COLUMN IF NOT EXISTS streak_days INTEGER DEFAULT 0;
+ALTER TABLE user_signins ADD COLUMN IF NOT EXISTS bonus_stars INTEGER DEFAULT 0;
+
+-- 补全用户积分汇总表（v1.1.2）
+CREATE TABLE IF NOT EXISTS user_point_summary (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    total_earned INTEGER DEFAULT 0,
+    total_used INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 补全展示设置表字段
+ALTER TABLE user_display_settings ADD COLUMN IF NOT EXISTS equipped_achievement_id UUID;
+ALTER TABLE user_display_settings ADD COLUMN IF NOT EXISTS equipped_sticker_id UUID;
+ALTER TABLE user_display_settings ADD COLUMN IF NOT EXISTS equipped_sticker1_id UUID;
+ALTER TABLE user_display_settings ADD COLUMN IF NOT EXISTS equipped_sticker2_id UUID;
+ALTER TABLE user_display_settings ADD COLUMN IF NOT EXISTS pet VARCHAR(50) DEFAULT 'rabbit';
+ALTER TABLE user_display_settings ADD COLUMN IF NOT EXISTS theme VARCHAR(20) DEFAULT 'pink';
+
+-- 补全转盘奖品表
+ALTER TABLE spin_wheel_prizes ADD COLUMN IF NOT EXISTS emoji VARCHAR(50) DEFAULT '🎁';
+
+-- 补全每日转盘记录表
+ALTER TABLE user_daily_spins ADD COLUMN IF NOT EXISTS prize_id UUID;
+ALTER TABLE user_daily_spins ADD COLUMN IF NOT EXISTS prize_name VARCHAR(100);
+
+-- 补全周报表
+ALTER TABLE weekly_reports ADD COLUMN IF NOT EXISTS viewed BOOLEAN DEFAULT false;
+ALTER TABLE weekly_reports ADD COLUMN IF NOT EXISTS data JSONB DEFAULT '{}';
+
+-- 修改任务frequency约束（支持once一次性任务）
+ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_frequency_check;
+ALTER TABLE tasks ADD CONSTRAINT tasks_frequency_check CHECK (frequency IN ('daily', 'weekly', 'special', 'once'));
+
+-- 初始化用户积分汇总
+INSERT INTO user_point_summary (user_id, total_earned, total_used)
+SELECT id, 0, 0 FROM users
+ON CONFLICT (user_id) DO NOTHING;
+
+-- 初始化用户宠物
+INSERT INTO user_pets (user_id, pet_type, pet_mood)
+SELECT id, 'rabbit', 'neutral' FROM users
+ON CONFLICT (user_id) DO NOTHING;

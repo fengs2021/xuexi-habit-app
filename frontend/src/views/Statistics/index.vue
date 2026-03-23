@@ -1,11 +1,13 @@
 <template>
   <div class="statistics-page">
+    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+
     <!-- 每周报告 -->
     <van-cell-group inset title="📊 每周报告" class="weekly-report-group" v-if="userStore.isChild">
       <div v-if="weeklyReport" class="weekly-report">
         <div class="report-header">
           <span class="report-title">{{ weeklyReport.week_start }} ~ {{ weeklyReport.week_end }}</span>
-          <van-tag :type="weeklyReport.viewed ? 'default' : 'success'" size="small">
+          <van-tag :type="weeklyReport.viewed ? 'default' : 'success'" size="small" @click="viewReport">
             {{ weeklyReport.viewed ? '已查看' : '新报告' }}
           </van-tag>
         </div>
@@ -135,39 +137,92 @@
     </van-cell-group>
 
     <!-- 周报弹窗提示 -->
-    <van-popup v-model:show="showReportPopup" round closeable class="report-popup">
-      <div class="popup-content" v-if="weeklyReport">
-        <div class="popup-header">📊 本周习惯报告</div>
-        <div class="popup-subheader">{{ weeklyReport.week_start }} ~ {{ weeklyReport.week_end }}</div>
+    <van-popup v-model:show="showReportPopup" round closeable class="report-popup-full">
+      <div class="popup-content" v-if="lastWeekReport">
+        <div class="popup-header">📊 上周习惯报告</div>
+        <div class="popup-subheader">{{ lastWeekReport.week_start }} ~ {{ lastWeekReport.week_end }}</div>
         
+        <!-- 汇总数据 -->
         <div class="popup-summary">
           <div class="popup-stat">
-            <span class="stat-num">{{ weeklyReport.summary.completed }}</span>
+            <span class="stat-num">{{ lastWeekReport.summary?.completed || 0 }}</span>
             <span class="stat-desc">完成任务</span>
           </div>
           <div class="popup-stat">
-            <span class="stat-num">{{ weeklyReport.summary.completion_rate }}%</span>
+            <span class="stat-num">{{ lastWeekReport.summary?.completion_rate || 0 }}%</span>
             <span class="stat-desc">完成率</span>
           </div>
           <div class="popup-stat">
-            <span class="stat-num">+{{ weeklyReport.summary.stars_earned }}</span>
-            <span class="stat-desc">获得积分</span>
+            <span class="stat-num">+{{ lastWeekReport.summary?.stars_earned || 0 }}</span>
+            <span class="stat-desc">获得星星</span>
+          </div>
+          <div class="popup-stat">
+            <span class="stat-num">{{ lastWeekReport.summary?.signin_days || 0 }}/7</span>
+            <span class="stat-desc">签到天数</span>
           </div>
         </div>
         
-        <div class="popup-msg" v-if="weeklyReport.comparison">
-          {{ weeklyReport.comparison.completed_change >= 0 ? '🎉 比上周多做' : '📈 比上周少做' }}
-          {{ Math.abs(weeklyReport.comparison.completed_change) }}个任务
+        <!-- 对比上周 -->
+        <div class="popup-comparison" v-if="lastWeekReport.comparison">
+          <span v-if="lastWeekReport.comparison.completed_change >= 0">🎉 比上上周多完成 {{ lastWeekReport.comparison.completed_change }} 个任务</span>
+          <span v-else>📈 比上上周少完成 {{ Math.abs(lastWeekReport.comparison.completed_change) }} 个任务</span>
+          <span v-if="lastWeekReport.comparison.stars_change >= 0">，多获得 {{ lastWeekReport.comparison.stars_change }} 星星</span>
+          <span v-else>，少获得 {{ Math.abs(lastWeekReport.comparison.stars_change) }} 星星</span>
         </div>
         
-        <van-button type="primary" block @click="viewReport">查看完整报告</van-button>
+        <!-- 每日详情 -->
+        <div class="daily-details" v-if="lastWeekReport.daily_details?.length">
+          <div class="daily-title">每日完成情况</div>
+          <div class="daily-list">
+            <div v-for="day in lastWeekReport.daily_details" :key="day.date" class="daily-item">
+              <span class="daily-date">{{ formatShortDate(day.date) }}</span>
+              <span class="daily-info">
+                <span class="task-count">完成任务: {{ day.completed }}/{{ day.total }}</span>
+                <span class="star-count">获得: {{ day.stars }}⭐</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 签到情况 -->
+        <div class="signin-details" v-if="lastWeekReport.signins?.length">
+          <div class="signin-title">签到情况</div>
+          <div class="signin-list">
+            <span v-for="s in lastWeekReport.signins" :key="s.sign_date" class="signin-badge">
+              {{ formatShortDate(s.sign_date) }}: +{{ s.bonus_stars }}⭐ (连续{{ s.streak_days }}天)
+            </span>
+          </div>
+        </div>
+        
+        <!-- 新成就 -->
+        <div class="achievements-details" v-if="lastWeekReport.new_achievements?.length">
+          <div class="achievements-title">🏅 新成就</div>
+          <div class="achievements-list">
+            <span v-for="a in lastWeekReport.new_achievements" :key="a.id" class="achievement-badge">
+              {{ a.name }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- 新贴纸 -->
+        <div class="stickers-details" v-if="lastWeekReport.new_stickers?.length">
+          <div class="stickers-title">🌟 新贴纸</div>
+          <div class="stickers-list">
+            <span v-for="s in lastWeekReport.new_stickers" :key="s.id" class="sticker-badge">
+              {{ s.emoji }}
+            </span>
+          </div>
+        </div>
+        
+        <van-button type="primary" block @click="showReportPopup = false" class="close-btn">关闭</van-button>
       </div>
     </van-popup>
+    </van-pull-refresh>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { getDailyStars, getDailyTasks } from '@/api/statistics'
 import { getWeeklyReport, markReportViewed } from '@/api/report'
@@ -178,11 +233,15 @@ const dailyStats = ref([])
 const loading = ref(true)
 const chartRef = ref(null)
 const canScroll = ref(false)
+const refreshing = ref(false)
 
 // Weekly report
 const weeklyReport = ref(null)
 const reportLoading = ref(false)
 const showReportPopup = ref(false)
+
+// 周一弹窗用的上周报告数据
+const lastWeekReport = ref(null)
 
 // Tasks data
 const taskItems = ref([])
@@ -272,23 +331,51 @@ const checkScroll = () => {
   }
 }
 
-// 检查是否周一且有未查看的报告
-const checkMondayPopup = () => {
+// 检查是否周一（每周只弹一次）
+const checkMondayPopup = async () => {
   const now = new Date()
   const dayOfWeek = now.getDay()
-  if (dayOfWeek === 1 && weeklyReport.value && !weeklyReport.value.viewed) {
-    showReportPopup.value = true
+  
+  if (dayOfWeek !== 1) return
+  
+  // 获取本周一日期作为key
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - dayOfWeek + 1)
+  const weekKey = 'report_popup_' + weekStart.toISOString().split('T')[0]
+  
+  // 检查是否已弹过
+  if (localStorage.getItem(weekKey)) return
+  
+  // 获取上周报告数据
+  if (userStore.userInfo?.id) {
+    try {
+      const res = await getWeeklyReport(userStore.userInfo.id, 'last')
+      const data = res?.data?.data || res
+      if (data) {
+        lastWeekReport.value = data
+        showReportPopup.value = true
+        localStorage.setItem(weekKey, '1')
+      }
+    } catch (error) {
+      console.error('Load last week report error:', error)
+    }
   }
 }
 
 const viewReport = async () => {
-  showReportPopup.value = false
-  if (userStore.userInfo?.id) {
-    await markReportViewed(userStore.userInfo.id)
-    if (weeklyReport.value) {
-      weeklyReport.value.viewed = true
+  // 点击"新报告"标签时，获取并显示上周报告
+  if (!lastWeekReport.value && userStore.userInfo?.id) {
+    try {
+      const res = await getWeeklyReport(userStore.userInfo.id, 'last')
+      const data = res?.data?.data || res
+      if (data) {
+        lastWeekReport.value = data
+      }
+    } catch (error) {
+      console.error('Load last week report error:', error)
     }
   }
+  showReportPopup.value = true
 }
 
 const loadWeeklyReport = async () => {
@@ -381,6 +468,23 @@ onMounted(() => {
     content.addEventListener('scroll', handleScroll)
   }
 })
+
+// 每次页面显示时刷新数据
+onActivated(() => {
+  loadStats()
+  loadTasks(true)
+  loadWeeklyReport()
+})
+
+const onRefresh = async () => {
+  refreshing.value = true
+  await Promise.all([
+    loadStats(),
+    loadTasks(true),
+    loadWeeklyReport()
+  ])
+  refreshing.value = false
+}
 </script>
 
 <style scoped>
@@ -647,15 +751,17 @@ onMounted(() => {
 }
 
 /* 周报弹窗 */
-.report-popup {
-  width: 90%;
-  max-width: 340px;
+.report-popup, .report-popup-full {
+  width: 95%;
+  max-width: 400px;
+  max-height: 85vh;
+  overflow-y: auto;
   background: linear-gradient(135deg, #FFF8DC 0%, #FFFACD 50%, #FFE4E1 100%);
   border: 3px solid #FFD700;
 }
 
 .popup-content {
-  padding: 24px 20px;
+  padding: 20px 16px;
   text-align: center;
 }
 
@@ -676,6 +782,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-around;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .popup-stat {
@@ -683,6 +790,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  min-width: 70px;
 }
 
 .stat-num {
@@ -696,6 +804,15 @@ onMounted(() => {
   color: #666;
 }
 
+.popup-comparison {
+  background: white;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #333;
+}
+
 .popup-msg {
   background: white;
   border-radius: 8px;
@@ -703,5 +820,92 @@ onMounted(() => {
   margin-bottom: 16px;
   font-size: 14px;
   color: #333;
+}
+
+/* 每日详情 */
+.daily-details, .signin-details, .achievements-details, .stickers-details {
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.daily-title, .signin-title, .achievements-title, .stickers-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #FF69B4;
+  margin-bottom: 8px;
+}
+
+.daily-list {
+  background: white;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.daily-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.daily-item:last-child {
+  border-bottom: none;
+}
+
+.daily-date {
+  font-size: 13px;
+  color: #666;
+}
+
+.daily-info {
+  display: flex;
+  gap: 12px;
+}
+
+.task-count, .star-count {
+  font-size: 12px;
+  color: #333;
+}
+
+/* 签到情况 */
+.signin-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.signin-badge {
+  background: #FFF0F5;
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #FF69B4;
+}
+
+/* 成就贴纸 */
+.achievements-list, .stickers-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.achievement-badge {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  border-radius: 12px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #fff;
+}
+
+.sticker-badge {
+  font-size: 20px;
+  background: #f0f0f0;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.close-btn {
+  margin-top: 16px;
 }
 </style>

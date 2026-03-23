@@ -99,6 +99,7 @@ const userStore = useUserStore()
 const dateStr = ref('')
 const timeStr = ref('')
 let timer = null
+let refreshTimer = null
 const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
 
 const allAchievements = ref([])
@@ -245,6 +246,10 @@ onMounted(async () => {
   await userStore.getUserInfoAction()
   updateTime()
   timer = setInterval(updateTime, 1000)
+  // 每5秒刷新用户数据（星星余额）
+  refreshTimer = setInterval(() => {
+    userStore.getUserInfoAction()
+  }, 5000)
   loadDisplayData()
   checkNewRewards()
   checkStreak()
@@ -252,6 +257,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (timer) clearInterval(timer)
+  if (refreshTimer) clearInterval(refreshTimer)
 })
 
 onBeforeRouteUpdate((to) => {

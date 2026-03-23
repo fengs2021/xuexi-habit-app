@@ -6,17 +6,33 @@ const router = new Router({ prefix: "/api/report" })
 
 router.get("/weekly/:childId", async (ctx) => {
   const { childId } = ctx.params
+  const { type } = ctx.query  // type=last 表示获取上周报告
   
   try {
     const now = new Date()
     const dayOfWeek = now.getDay() || 7
-    const weekStart = new Date(now)
-    weekStart.setDate(now.getDate() - dayOfWeek + 1)
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekStart.getDate() + 6)
     
-    const weekStartStr = weekStart.toISOString().split('T')[0]
-    const weekEndStr = weekEnd.toISOString().split('T')[0]
+    // 使用本地日期计算
+    const year = now.getFullYear()
+    const month = now.getMonth()
+    const date = now.getDate()
+    
+    let weekStart, weekEnd
+    if (type === 'last') {
+      // 获取上周报告
+      const thisWeekStart = new Date(year, month, date - dayOfWeek + 1)
+      weekEnd = new Date(thisWeekStart)
+      weekEnd.setDate(weekEnd.getDate() - 1)  // 上周日
+      weekStart = new Date(weekEnd)
+      weekStart.setDate(weekStart.getDate() - 6)  // 上周一
+    } else {
+      // 默认本周（本周一到本周日）
+      weekStart = new Date(year, month, date - dayOfWeek + 1)
+      weekEnd = new Date(year, month, date - dayOfWeek + 7)
+    }
+    
+    const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth()+1).padStart(2,'0')}-${String(weekStart.getDate()).padStart(2,'0')}`
+    const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth()+1).padStart(2,'0')}-${String(weekEnd.getDate()).padStart(2,'0')}`
     
     let reportRes = await pool.query(
       "SELECT * FROM weekly_reports WHERE user_id = $1 AND week_start = $2",
@@ -29,7 +45,15 @@ router.get("/weekly/:childId", async (ctx) => {
       report = await generateWeeklyReport(childId, weekStartStr, weekEndStr)
     }
     
-    ctx.body = success(report)
+    // 扁平化 data 字段到顶层
+    if (report && report.data) {
+      const flattened = { ...report }
+      delete flattened.data
+      Object.assign(flattened, report.data)
+      ctx.body = success(flattened)
+    } else {
+      ctx.body = success(report)
+    }
   } catch (error) {
     console.error('Get weekly report error:', error)
     ctx.body = { code: 500, message: error.message, data: null }
@@ -42,9 +66,8 @@ router.put("/weekly/:childId/viewed", async (ctx) => {
   try {
     const now = new Date()
     const dayOfWeek = now.getDay() || 7
-    const weekStart = new Date(now)
-    weekStart.setDate(now.getDate() - dayOfWeek + 1)
-    const weekStartStr = weekStart.toISOString().split('T')[0]
+    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek + 1)
+    const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth()+1).padStart(2,'0')}-${String(weekStart.getDate()).padStart(2,'0')}`
     
     await pool.query(
       "UPDATE weekly_reports SET viewed = true WHERE user_id = $1 AND week_start = $2",
@@ -98,12 +121,15 @@ async function generateWeeklyReport(userId, weekStartStr, weekEndStr) {
     WHERE us.user_id = $1 AND DATE(us.earned_at) >= $2 AND DATE(us.earned_at) <= $3
   `, [userId, weekStartStr, weekEndStr])
   
-  const lastWeekStart = new Date(weekStartStr)
+  // 计算上周数据（用于对比）
+  const weekStart = new Date(weekStartStr)
+  const lastWeekStart = new Date(weekStart)
   lastWeekStart.setDate(lastWeekStart.getDate() - 7)
-  const lastWeekEnd = new Date(weekEndStr)
-  lastWeekEnd.setDate(lastWeekEnd.getDate() - 7)
-  const lastWeekStartStr = lastWeekStart.toISOString().split('T')[0]
-  const lastWeekEndStr = lastWeekEnd.toISOString().split('T')[0]
+  const lastWeekEnd = new Date(weekStart)
+  lastWeekEnd.setDate(lastWeekEnd.getDate() - 1)
+  
+  const lastWeekStartStr = `${lastWeekStart.getFullYear()}-${String(lastWeekStart.getMonth()+1).padStart(2,'0')}-${String(lastWeekStart.getDate()).padStart(2,'0')}`
+  const lastWeekEndStr = `${lastWeekEnd.getFullYear()}-${String(lastWeekEnd.getMonth()+1).padStart(2,'0')}-${String(lastWeekEnd.getDate()).padStart(2,'0')}`
   
   const lastWeekRes = await pool.query(`
     SELECT COUNT(*) FILTER (WHERE action = 'completed') as completed,

@@ -1,5 +1,5 @@
 import Router from '@koa/router'
-import { getTasks, createTask, updateTask, completeTask, skipTask, deleteTask, getStudentTaskStatus, approveTaskLog } from '../controllers/task.js'
+import { getTasks, createTask, updateTask, completeTask, skipTask, deleteTask, getStudentTaskStatus, approveTaskLog, deductStars } from '../controllers/task.js'
 
 const router = new Router({ prefix: '/api/tasks' })
 
@@ -11,5 +11,7 @@ router.post('/:id/skip', skipTask)
 router.delete('/:id', deleteTask)
 router.get('/student-status', getStudentTaskStatus)
 router.post('/log/:id/approve', approveTaskLog)
+
+router.post('/deduct', deductStars)
 
 export default router

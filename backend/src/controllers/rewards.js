@@ -195,6 +195,20 @@ export async function checkAndAwardAchievements(userId) {
         'INSERT INTO user_achievements (user_id, achievement_id, unlocked_at) VALUES ($1, $2, NOW()) ON CONFLICT DO NOTHING',
         [userId, achievement.id]
       )
+      
+      // 发放成就奖励星星
+      const rewardStars = achievement.reward_stars || 0
+      if (rewardStars > 0) {
+        await pool.query(
+          'UPDATE users SET stars = stars + $1, total_stars = total_stars + $1 WHERE id = $2',
+          [rewardStars, userId]
+        )
+        await pool.query(
+          'INSERT INTO user_point_summary (user_id, total_earned, total_used) VALUES ($1, $2, 0) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
+          [userId, rewardStars]
+        )
+      }
+      
       awarded.push(achievement)
     }
   }

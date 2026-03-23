@@ -165,12 +165,29 @@ export async function updateTask(ctx) {
   }
   
   const { id } = ctx.params
-  const { title, starReward } = ctx.request.body
+  const { title, star_reward, frequency, rarity, icon, is_active } = ctx.request.body
   
   try {
+    const updates = []
+    const values = []
+    let idx = 1
+    
+    if (title !== undefined) { updates.push(`title = $${idx++}`); values.push(title) }
+    if (star_reward !== undefined) { updates.push(`star_reward = $${idx++}`); values.push(star_reward) }
+    if (frequency !== undefined) { updates.push(`frequency = $${idx++}`); values.push(frequency) }
+    if (rarity !== undefined) { updates.push(`rarity = $${idx++}`); values.push(rarity) }
+    if (icon !== undefined) { updates.push(`icon = $${idx++}`); values.push(icon) }
+    if (is_active !== undefined) { updates.push(`is_active = $${idx++}`); values.push(is_active) }
+    
+    if (updates.length === 0) {
+      ctx.body = error(400, '没有要更新的字段')
+      return
+    }
+    
+    values.push(id, user.family_id)
     await pool.query(
-      'UPDATE tasks SET title = $1, star_reward = $2 WHERE id = $3 AND family_id = $4',
-      [title, starReward, id, user.family_id]
+      `UPDATE tasks SET ${updates.join(', ')} WHERE id = $${idx++} AND family_id = $${idx}`,
+      values
     )
     ctx.body = success({})
   } catch (err) {
@@ -280,5 +297,72 @@ export async function approveTaskLog(ctx) {
     await client.query('ROLLBACK')
     console.error('ApproveTaskLog error:', err)
     ctx.body = error(500, '操作失败')
+  }
+}
+
+export async function deductStars(ctx) {
+  const user = await getUserFromToken(ctx)
+  if (!user) return
+  
+  if (user.role !== 'admin') {
+    ctx.body = error(ErrorCodes.FORBIDDEN, '只有家长可以扣分')
+    return
+  }
+  
+  const { studentId, stars, reason } = ctx.request.body
+  
+  if (!studentId || !stars) {
+    ctx.body = error(400, '参数不完整')
+    return
+  }
+  
+  const deductStars = Math.abs(parseInt(stars))
+  
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    
+    // 检查学生是否存在且属于该家庭
+    const studentResult = await client.query(
+      'SELECT id, stars, nickname FROM users WHERE id = $1 AND family_id = $2',
+      [studentId, user.family_id]
+    )
+    
+    if (studentResult.rows.length === 0) {
+      await client.query('ROLLBACK')
+      ctx.body = error(404, '学生不存在')
+      return
+    }
+    
+    const student = studentResult.rows[0]
+    
+    // 扣除积分（负数）
+    await client.query(
+      'UPDATE users SET stars = stars - $1 WHERE id = $2',
+      [deductStars, studentId]
+    )
+    
+    // 记录到 task_logs（作为一种特殊的惩罚记录）
+    await client.query(
+      'INSERT INTO task_logs (user_id, task_id, action, stars_earned, approval_status, completed_date) VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)',
+      [studentId, '00000000-0000-0000-0000-000000000000', 'punishment', -deductStars, 'approved']
+    )
+    
+    // 更新积分汇总表
+    await client.query(
+      'INSERT INTO user_point_summary (user_id, total_used) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_used = user_point_summary.total_used + $2, updated_at = NOW()',
+      [studentId, deductStars]
+    )
+    
+    await client.query('COMMIT')
+    ctx.body = success({ 
+      message: '已扣除 ' + student.nickname + ' ' + deductStars + ' 星星',
+      deducted: deductStars,
+      remainingStars: student.stars - deductStars
+    })
+  } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('DeductStars error:', err)
+    ctx.body = error(500, '扣分失败')
   }
 }

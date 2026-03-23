@@ -585,3 +585,158 @@
   }
 }
 ```
+
+---
+
+## 转盘接口
+
+### GET /api/wheel/config
+获取转盘配置和奖品列表
+
+### POST /api/wheel/spin/:userId
+用户转动转盘
+
+**响应**
+```json
+{
+  "code": 0,
+  "data": {
+    "prize": {
+      "id": "uuid",
+      "name": "2星",
+      "prize_type": "stars",
+      "prize_value": 2
+    },
+    "remainingSpins": 0
+  }
+}
+```
+
+---
+
+## 每周报告接口
+
+### GET /api/report/weekly/:childId
+获取指定孩子的周报
+
+**查询参数**
+- `type`: `last` - 获取上周报告（周一弹窗用）
+
+**响应**
+```json
+{
+  "code": 0,
+  "data": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "week_start": "2026-03-16",
+    "week_end": "2026-03-22",
+    "user_nickname": "瑶瑶",
+    "summary": {
+      "total_tasks": 14,
+      "completed": 10,
+      "skipped": 2,
+      "completion_rate": 71,
+      "stars_earned": 12,
+      "signin_days": 5,
+      "new_achievements": 1,
+      "new_stickers": 2
+    },
+    "comparison": {
+      "last_week_completed": 8,
+      "last_week_stars": 10,
+      "completed_change": 2,
+      "stars_change": 2
+    },
+    "daily_details": [
+      {
+        "date": "2026-03-16",
+        "total": 14,
+        "completed": 12,
+        "skipped": 1,
+        "stars": 12
+      }
+    ],
+    "signins": [
+      {
+        "sign_date": "2026-03-16",
+        "streak_days": 3,
+        "bonus_stars": 2
+      }
+    ],
+    "new_achievements": [
+      {
+        "id": "uuid",
+        "name": "小试牛刀",
+        "description": "累计完成10个任务",
+        "reward_stars": 5
+      }
+    ],
+    "new_stickers": [
+      {
+        "id": "uuid",
+        "emoji": "⭐",
+        "name": "小星星",
+        "rarity": "N"
+      }
+    ],
+    "viewed": false
+  }
+}
+```
+
+### PUT /api/report/weekly/:childId/viewed
+标记周报为已读
+
+---
+
+## 签到接口
+
+### GET /api/signin/info/:userId
+获取用户签到信息
+
+**响应**
+```json
+{
+  "code": 0,
+  "data": {
+    "checkedIn": false,
+    "streakDays": 3,
+    "todayBonus": 2,
+    "canClaim": true,
+    "monthDays": [1, 2, 3, 5, 6, 7, 8]
+  }
+}
+```
+
+### POST /api/signin/checkin
+执行签到
+
+**请求参数**
+```json
+{
+  "userId": "uuid"
+}
+```
+
+**响应**
+```json
+{
+  "code": 0,
+  "data": {
+    "streakDays": 4,
+    "bonusStars": 2,
+    "totalStars": 15
+  }
+}
+```
+
+---
+
+## 成就接口
+
+### GET /api/achievements
+获取所有成就定义
+
+### GET /api/achievements/user/:userId
+获取用户已解锁的成就

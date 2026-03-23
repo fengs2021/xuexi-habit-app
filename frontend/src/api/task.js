@@ -31,3 +31,7 @@ export function getStudentTaskStatus() {
 export function approveTaskLog(id, data) {
   return request({ url: '/tasks/log/' + id + '/approve', method: 'POST', data })
 }
+
+export function deductStars(data) {
+  return request({ url: '/tasks/deduct', method: 'POST', data })
+}

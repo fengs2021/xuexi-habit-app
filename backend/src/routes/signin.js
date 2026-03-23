@@ -127,6 +127,12 @@ router.post('/checkin', async (ctx) => {
     [bonus, userId]
   )
   
+  // 同时更新 user_point_summary
+  await pool.query(
+    'INSERT INTO user_point_summary (user_id, total_earned, total_used) VALUES ($1, $2, 0) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
+    [userId, bonus]
+  )
+  
   ctx.body = success({
     streakDays: newStreak,
     bonusStars: bonus,

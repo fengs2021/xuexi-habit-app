@@ -10,7 +10,9 @@
         </div>
       </div>
       <div class="task-actions">
-        <div class="star-reward">+{{ task.starReward || task.star_reward }} ★</div>
+        <div class="star-reward" :class="{ 'star-negative': (task.starReward || task.star_reward) < 0 }">
+  {{ (task.starReward || task.star_reward) > 0 ? '+' : '' }}{{ task.starReward || task.star_reward }} ★
+</div>
         <van-button 
           v-if="task.pendingApproval" 
           type="warning" 
@@ -139,6 +141,13 @@ const skip = async () => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+.star-reward {
+  transition: all 0.3s ease;
+}
+.star-reward.star-negative {
+  color: #ee0a24;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 .star-reward {
   font-size: 17px;

@@ -1,7 +1,9 @@
 import request from './request'
 
-export function getWeeklyReport(childId) {
-  return request({ url: '/report/weekly/' + childId, method: 'GET' })
+export function getWeeklyReport(childId, type) {
+  let url = '/report/weekly/' + childId
+  if (type) url += '?type=' + type
+  return request({ url, method: 'GET' })
 }
 
 export function markReportViewed(childId) {
