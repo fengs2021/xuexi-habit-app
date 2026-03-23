@@ -61,7 +61,7 @@ export async function getTasks(ctx) {
       
       const logResult = await pool.query(
         'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 AND created_at >= $4 ORDER BY created_at DESC LIMIT 1',
-        [user.id, task.id, 'completed', checkTime.toISOString()]
+        [user.id, task.id, 'complete', checkTime.toISOString()]
       )
       if (logResult.rows.length > 0) {
         const approvalStatus = logResult.rows[0].approval_status
@@ -128,7 +128,7 @@ export async function completeTask(ctx) {
     
     await pool.query(
       'INSERT INTO task_logs (user_id, task_id, action, stars_earned, approval_status) VALUES ($1, $2, $3, $4, $5)',
-      [user.id, id, 'completed', task.star_reward, 'pending']
+      [user.id, id, 'complete', task.star_reward, 'pending']
     )
     
     ctx.body = success({ message: '已完成申请，请等待家长审批' })
@@ -223,7 +223,7 @@ export async function getStudentTaskStatus(ctx) {
   try {
     const logsResult = await pool.query(
       'SELECT tl.*, u.nickname as user_nickname, t.title as task_title, t.star_reward FROM task_logs tl JOIN users u ON tl.user_id = u.id JOIN tasks t ON tl.task_id = t.id WHERE u.family_id = $1 AND tl.action = $2 ORDER BY tl.created_at DESC LIMIT 50',
-      [user.family_id, 'completed']
+      [user.family_id, 'complete']
     )
     ctx.body = success(logsResult.rows)
   } catch (err) {

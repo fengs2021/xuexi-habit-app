@@ -58,11 +58,11 @@ export async function checkAndAwardAchievements(userId) {
   
   const statsResult = await pool.query(`
     SELECT 
-      (SELECT COUNT(*) FROM task_logs WHERE user_id = $1 AND action = 'completed') as task_count,
+      (SELECT COUNT(*) FROM task_logs WHERE user_id = $1 AND action = 'complete') as task_count,
       (SELECT COALESCE(SUM(stars_earned), 0) FROM task_logs WHERE user_id = $1 AND approval_status = 'approved') as total_stars,
       (SELECT COUNT(*) FROM user_stickers WHERE user_id = $1) as sticker_count,
       (SELECT COUNT(*) FROM exchange_logs WHERE user_id = $1 AND status = 'completed') as exchange_count,
-      (SELECT COUNT(*) FROM task_logs WHERE user_id = $1 AND action = 'completed' AND task_type = 'special') as special_task_count
+      (SELECT COUNT(*) FROM task_logs WHERE user_id = $1 AND action = 'complete' AND task_type = 'special') as special_task_count
   `, [userId])
   const stats = statsResult.rows[0]
   
@@ -71,7 +71,7 @@ export async function checkAndAwardAchievements(userId) {
     WITH task_days AS (
       SELECT task_id, DATE(completed_date) as task_date
       FROM task_logs
-      WHERE user_id = $1 AND action = 'completed' AND completed_date IS NOT NULL
+      WHERE user_id = $1 AND action = 'complete' AND completed_date IS NOT NULL
       GROUP BY task_id, DATE(completed_date)
     ),
     task_streaks AS (
@@ -91,7 +91,7 @@ export async function checkAndAwardAchievements(userId) {
   const taskCountResult = await pool.query(`
     SELECT task_id, COUNT(*) as cnt
     FROM task_logs
-    WHERE user_id = $1 AND action = 'completed'
+    WHERE user_id = $1 AND action = 'complete'
     GROUP BY task_id
     ORDER BY cnt DESC
     LIMIT 1
@@ -120,7 +120,7 @@ export async function checkAndAwardAchievements(userId) {
     WITH days AS (
       SELECT DISTINCT DATE(completed_date) as task_date
       FROM task_logs
-      WHERE user_id = $1 AND action = 'completed' AND completed_date IS NOT NULL
+      WHERE user_id = $1 AND action = 'complete' AND completed_date IS NOT NULL
       ORDER BY task_date DESC
     ),
     streaks AS (
@@ -135,14 +135,14 @@ export async function checkAndAwardAchievements(userId) {
   // 检查早鸟和夜猫子
   const earlyBirdResult = await pool.query(`
     SELECT COUNT(*) as cnt FROM task_logs
-    WHERE user_id = $1 AND action = 'completed'
+    WHERE user_id = $1 AND action = 'complete'
     AND EXTRACT(HOUR FROM completed_date) < 8
   `, [userId])
   const hasEarlyBird = parseInt(earlyBirdResult.rows[0]?.cnt || 0) > 0
   
   const nightOwlResult = await pool.query(`
     SELECT COUNT(*) as cnt FROM task_logs
-    WHERE user_id = $1 AND action = 'completed'
+    WHERE user_id = $1 AND action = 'complete'
     AND EXTRACT(HOUR FROM completed_date) >= 22
   `, [userId])
   const hasNightOwl = parseInt(nightOwlResult.rows[0]?.cnt || 0) > 0

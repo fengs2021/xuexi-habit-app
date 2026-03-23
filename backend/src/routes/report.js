@@ -87,18 +87,18 @@ async function generateWeeklyReport(userId, weekStartStr, weekEndStr) {
   
   const taskStatsRes = await pool.query(`
     SELECT 
-      COUNT(*) FILTER (WHERE action = 'completed') as completed,
+      COUNT(*) FILTER (WHERE action = 'complete') as completed,
       COUNT(*) FILTER (WHERE action = 'skipped') as skipped,
-      COALESCE(SUM(stars_earned) FILTER (WHERE action = 'completed'), 0) as stars_earned
+      COALESCE(SUM(stars_earned) FILTER (WHERE action = 'complete'), 0) as stars_earned
     FROM task_logs 
     WHERE user_id = $1 AND completed_date >= $2 AND completed_date <= $3
   `, [userId, weekStartStr, weekEndStr])
   
   const dailyRes = await pool.query(`
     SELECT completed_date, COUNT(*) as total,
-      COUNT(*) FILTER (WHERE action = 'completed') as completed,
+      COUNT(*) FILTER (WHERE action = 'complete') as completed,
       COUNT(*) FILTER (WHERE action = 'skipped') as skipped,
-      COALESCE(SUM(stars_earned) FILTER (WHERE action = 'completed'), 0) as stars
+      COALESCE(SUM(stars_earned) FILTER (WHERE action = 'complete'), 0) as stars
     FROM task_logs
     WHERE user_id = $1 AND completed_date >= $2 AND completed_date <= $3
     GROUP BY completed_date ORDER BY completed_date
@@ -132,8 +132,8 @@ async function generateWeeklyReport(userId, weekStartStr, weekEndStr) {
   const lastWeekEndStr = `${lastWeekEnd.getFullYear()}-${String(lastWeekEnd.getMonth()+1).padStart(2,'0')}-${String(lastWeekEnd.getDate()).padStart(2,'0')}`
   
   const lastWeekRes = await pool.query(`
-    SELECT COUNT(*) FILTER (WHERE action = 'completed') as completed,
-      COALESCE(SUM(stars_earned) FILTER (WHERE action = 'completed'), 0) as stars
+    SELECT COUNT(*) FILTER (WHERE action = 'complete') as completed,
+      COALESCE(SUM(stars_earned) FILTER (WHERE action = 'complete'), 0) as stars
     FROM task_logs WHERE user_id = $1 AND completed_date >= $2 AND completed_date <= $3
   `, [userId, lastWeekStartStr, lastWeekEndStr])
   
