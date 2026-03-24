@@ -80,7 +80,7 @@ const petNames = {
   '🐝': '小蜜蜂', '🌸': '小樱花', '🌺': '小木槿', '🌈': '小彩虹',
   // 卡通宠物名称
   'peppa.jpg': '小猪佩奇', 'chase.jpg': '汪汪队Chase', 'marshall.jpg': '汪汪队Marshall',
-  'elsa.jpg': '艾莎公主', 'belle.jpg': '贝儿公主', 'cinderella.jpg': '灰姑娘',
+  'anna.jpg': '安娜公主', 'elsa.jpg': '艾莎公主', 'belle.jpg': '贝儿公主', 'cinderella.jpg': '灰姑娘',
   'moana.jpg': '莫阿娜', 'tiana.jpg': '蒂安娜公主', 'rapunzel.jpg': '长发公主'
 }
 

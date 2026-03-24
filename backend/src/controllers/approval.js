@@ -2,6 +2,7 @@ import pool from '../config/database.js'
 import { success, error, ErrorCodes } from '../utils/response.js'
 import jwt from 'jsonwebtoken'
 import JWT_SECRET from '../utils/jwt.js'
+import { addPoints, subtractPoints, PointType } from '../services/points.js'
 
 async function getUserFromToken(ctx) {
   const authHeader = ctx.headers.authorization
@@ -58,12 +59,11 @@ export async function getPendingApprovals(ctx) {
     
     ctx.body = success({
       tasks: taskResult.rows,
-      exchanges: exchangeResult.rows,
-      total: taskResult.rows.length + exchangeResult.rows.length
+      exchanges: exchangeResult.rows
     })
   } catch (err) {
     console.error('GetPendingApprovals error:', err)
-    ctx.body = error(500, '获取审批列表失败')
+    ctx.body = error(500, '获取待审批列表失败')
   }
 }
 
@@ -73,32 +73,38 @@ export async function getApprovalHistory(ctx) {
   
   try {
     const taskResult = await pool.query(
-      `SELECT tl.id, tl.user_id, tl.task_id, tl.stars_earned, tl.approval_status, tl.completed_date, tl.created_at,
+      `SELECT tl.id, tl.user_id, tl.task_id, tl.stars_earned, tl.approval_status, tl.created_at,
               t.title as task_title,
               u.nickname as user_nickname, 'task' as type
        FROM task_logs tl
        JOIN tasks t ON tl.task_id = t.id
        JOIN users u ON tl.user_id = u.id
-       WHERE t.family_id = $1 AND tl.action = 'complete' AND tl.approval_status != 'pending'
-       ORDER BY tl.created_at DESC LIMIT 50`,
+       WHERE t.family_id = $1 AND tl.approval_status != 'pending'
+       ORDER BY tl.created_at DESC
+       LIMIT 50`,
       [user.family_id]
     )
     
     const exchangeResult = await pool.query(
-      `SELECT el.id, el.user_id, el.reward_id, el.stars_spent, el.status, el.created_at, el.approved_at,
+      `SELECT el.id, el.user_id, el.reward_id, el.stars_spent, el.status, el.created_at,
               r.title as reward_title,
               u.nickname as user_nickname, 'exchange' as type
        FROM exchange_logs el
        JOIN rewards r ON el.reward_id = r.id
        JOIN users u ON el.user_id = u.id
        WHERE r.family_id = $1 AND el.status != 'pending'
-       ORDER BY el.created_at DESC LIMIT 50`,
+       ORDER BY el.created_at DESC
+       LIMIT 50`,
       [user.family_id]
     )
     
-    ctx.body = success({ tasks: taskResult.rows, exchanges: exchangeResult.rows })
+    ctx.body = success({
+      tasks: taskResult.rows,
+      exchanges: exchangeResult.rows
+    })
   } catch (err) {
-    ctx.body = error(500, '获取历史失败')
+    console.error('GetApprovalHistory error:', err)
+    ctx.body = error(500, '获取审批历史失败')
   }
 }
 
@@ -109,14 +115,19 @@ export async function approveTaskCompletion(ctx) {
   const { id } = ctx.params
   const { approved } = ctx.request.body || {}
   
+  const client = await pool.connect()
   try {
-    const logResult = await pool.query(
-      `SELECT tl.*, t.star_reward, t.family_id FROM task_logs tl
+    await client.query('BEGIN')
+    
+    const logResult = await client.query(
+      `SELECT tl.*, t.star_reward, t.family_id, t.frequency as task_frequency, t.title as task_title
+       FROM task_logs tl
        JOIN tasks t ON tl.task_id = t.id WHERE tl.id = $1`,
       [id]
     )
     
     if (logResult.rows.length === 0) {
+      await client.query('ROLLBACK')
       ctx.body = error(404, '记录不存在')
       return
     }
@@ -124,26 +135,52 @@ export async function approveTaskCompletion(ctx) {
     const log = logResult.rows[0]
     
     if (log.approval_status !== 'pending') {
+      await client.query('ROLLBACK')
       ctx.body = error(400, '该记录已审批')
       return
     }
     
-    await pool.query('UPDATE task_logs SET approval_status = $1 WHERE id = $2',
+    await client.query('UPDATE task_logs SET approval_status = $1 WHERE id = $2',
       [approved ? 'approved' : 'rejected', id])
     
+    let pointsResult = { success: true, balance: 0 }
+    let stickerResult = null
+    let newAchievements = []
+    
     if (approved) {
-      await pool.query('UPDATE users SET stars = stars + $1 WHERE id = $2',
-        [log.star_reward, log.user_id])
-      await pool.query(
-        'INSERT INTO user_point_summary (user_id, total_earned) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
-        [log.user_id, log.star_reward]
-      )
+      const starsEarned = log.star_reward || 1
+      
+      // 使用统一积分服务增加星星
+      pointsResult = await addPoints(log.user_id, starsEarned, PointType.TASK_APPROVE, {
+        sourceId: log.id,
+        description: `完成任务「${log.task_title}」获得 ${starsEarned} 星星`
+      })
+      
+      // 发放贴纸
+      try {
+        const rewardsModule = await import('./rewards.js')
+        const { awardRandomSticker, checkAndAwardAchievements } = rewardsModule
+        stickerResult = await awardRandomSticker(log.user_id, log.task_frequency || 'daily')
+        newAchievements = await checkAndAwardAchievements(log.user_id)
+      } catch (e) {
+        console.error('Award sticker/achievement error:', e)
+      }
     }
     
-    ctx.body = success({ approved, starsAdded: approved ? log.star_reward : 0 })
+    await client.query('COMMIT')
+    ctx.body = success({ 
+      approved, 
+      starsAdded: approved ? (log.star_reward || 1) : 0,
+      currentBalance: pointsResult.balance,
+      sticker: stickerResult,
+      newAchievements: newAchievements
+    })
   } catch (err) {
+    await client.query('ROLLBACK')
     console.error('ApproveTaskLog error:', err)
     ctx.body = error(500, '审批失败')
+  } finally {
+    client.release()
   }
 }
 
@@ -154,14 +191,20 @@ export async function approveExchange(ctx) {
   const { id } = ctx.params
   const { approved } = ctx.request.body || {}
   
+  const client = await pool.connect()
   try {
-    const exchangeResult = await pool.query(
-      `SELECT el.*, r.family_id FROM exchange_logs el
-       JOIN rewards r ON el.reward_id = r.id WHERE el.id = $1`,
+    await client.query('BEGIN')
+    
+    const exchangeResult = await client.query(
+      `SELECT el.*, r.title as reward_title, r.family_id
+       FROM exchange_logs el
+       JOIN rewards r ON el.reward_id = r.id
+       WHERE el.id = $1`,
       [id]
     )
     
     if (exchangeResult.rows.length === 0) {
+      await client.query('ROLLBACK')
       ctx.body = error(404, '兑换记录不存在')
       return
     }
@@ -169,34 +212,49 @@ export async function approveExchange(ctx) {
     const exchange = exchangeResult.rows[0]
     
     if (exchange.status !== 'pending') {
-      ctx.body = error(400, '该兑换已审批')
+      await client.query('ROLLBACK')
+      ctx.body = error(400, '该兑换已处理')
       return
     }
     
-    await pool.query('UPDATE exchange_logs SET status = $1, approved_by = $2, approved_at = NOW() WHERE id = $3',
+    // 更新兑换状态
+    await client.query('UPDATE exchange_logs SET status = $1, approved_by = $2, approved_at = NOW() WHERE id = $3',
       [approved ? 'approved' : 'rejected', user.id, id])
     
+    // 记录审批
+    await client.query(
+      'INSERT INTO exchange_approvals (exchange_id, approver_id, action) VALUES ($1, $2, $3)',
+      [id, user.id, approved ? 'approve' : 'reject']
+    )
+    
+    let pointsResult = { success: true }
+    
     if (approved) {
-      // 审批通过，扣除学生积分
-      await pool.query('UPDATE users SET stars = stars - $1 WHERE id = $2',
-        [exchange.stars_spent, exchange.user_id])
-      await pool.query(
-        'INSERT INTO user_point_summary (user_id, total_used) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_used = user_point_summary.total_used + $2, updated_at = NOW()',
-        [exchange.user_id, exchange.stars_spent]
-      )
-    } else {
-      // 审批拒绝，返还学生积分（增加累计）
-      await pool.query('UPDATE users SET stars = stars + $1 WHERE id = $2',
-        [exchange.stars_spent, exchange.user_id])
-      await pool.query(
-        'INSERT INTO user_point_summary (user_id, total_earned) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
-        [exchange.user_id, exchange.stars_spent]
-      )
+      // 扣除用户星星
+      pointsResult = await subtractPoints(exchange.user_id, exchange.stars_spent, PointType.EXCHANGE, {
+        sourceId: exchange.id,
+        description: `兑换「${exchange.reward_title}」消耗 ${exchange.stars_spent} 星星`
+      })
+      
+      if (!pointsResult.success) {
+        await client.query('ROLLBACK')
+        ctx.body = error(3003, pointsResult.error || '余额不足')
+        return
+      }
     }
     
-    ctx.body = success({ approved, message: approved ? '已批准' : '已拒绝' })
+    await client.query('COMMIT')
+    ctx.body = success({ 
+      approved,
+      starsSpent: approved ? exchange.stars_spent : 0,
+      currentBalance: pointsResult.balance || 0
+    })
   } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('ApproveExchange error:', err)
     ctx.body = error(500, '审批失败')
+  } finally {
+    client.release()
   }
 }
 
@@ -207,42 +265,86 @@ export async function reverseApproval(ctx) {
   const { id } = ctx.params
   const { type } = ctx.request.body || {}
   
+  const client = await pool.connect()
   try {
+    await client.query('BEGIN')
+    
     if (type === 'task') {
-      const logResult = await pool.query('SELECT * FROM task_logs WHERE id = $1', [id])
+      // 撤销任务审批
+      const logResult = await client.query(
+        `SELECT tl.*, t.title as task_title 
+         FROM task_logs tl 
+         JOIN tasks t ON tl.task_id = t.id 
+         WHERE tl.id = $1`,
+        [id]
+      )
+      
       if (logResult.rows.length === 0) {
+        await client.query('ROLLBACK')
         ctx.body = error(404, '记录不存在')
         return
       }
+      
       const log = logResult.rows[0]
-      if (log.approval_status === 'approved') {
-        // 撤销已批准的任务，扣回星星（减少累计）
-        await pool.query('UPDATE users SET stars = stars - $1 WHERE id = $2', [log.stars_earned, log.user_id])
-        await pool.query(
-          'INSERT INTO user_point_summary (user_id, total_used) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_used = user_point_summary.total_used + $2, updated_at = NOW()',
-          [log.user_id, log.stars_earned]
-        )
-      }
-      await pool.query('DELETE FROM task_logs WHERE id = $1', [id])
-    } else if (type === 'exchange') {
-      const exchangeResult = await pool.query('SELECT * FROM exchange_logs WHERE id = $1', [id])
-      if (exchangeResult.rows.length === 0) {
-        ctx.body = error(404, '记录不存在')
+      
+      if (log.approval_status !== 'approved') {
+        await client.query('ROLLBACK')
+        ctx.body = error(400, '只能撤销已批准的任务')
         return
       }
-      const exchange = exchangeResult.rows[0]
-      if (exchange.status === 'approved') {
-        // 撤销已批准的兑换，退回星星（增加累计）
-        await pool.query('UPDATE users SET stars = stars + $1 WHERE id = $2', [exchange.stars_spent, exchange.user_id])
-        await pool.query(
-          'INSERT INTO user_point_summary (user_id, total_earned) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
-          [exchange.user_id, exchange.stars_spent]
-        )
+      
+      // 返还星星
+      if (log.stars_earned > 0) {
+        await addPoints(log.user_id, log.stars_earned, PointType.REVERSE, {
+          sourceId: log.id,
+          description: `撤销任务「${log.task_title}」，返还 ${log.stars_earned} 星星`
+        })
       }
-      await pool.query('DELETE FROM exchange_logs WHERE id = $1', [id])
+      
+      // 标记为已撤销（改回 pending 或删除）
+      await client.query(
+        "UPDATE task_logs SET approval_status = 'rejected' WHERE id = $1",
+        [id]
+      )
+      
+    } else if (type === 'exchange') {
+      // 撤销兑换审批
+      const exchangeResult = await client.query('SELECT * FROM exchange_logs WHERE id = $1', [id])
+      
+      if (exchangeResult.rows.length === 0) {
+        await client.query('ROLLBACK')
+        ctx.body = error(404, '兑换记录不存在')
+        return
+      }
+      
+      const exchange = exchangeResult.rows[0]
+      
+      if (exchange.status !== 'approved') {
+        await client.query('ROLLBACK')
+        ctx.body = error(400, '只能撤销已完成的兑换')
+        return
+      }
+      
+      // 返还星星
+      await addPoints(exchange.user_id, exchange.stars_spent, PointType.REVERSE, {
+        sourceId: exchange.id,
+        description: `撤销兑换，返还 ${exchange.stars_spent} 星星`
+      })
+      
+      // 标记为已撤销
+      await client.query(
+        "UPDATE exchange_logs SET status = 'cancelled' WHERE id = $1",
+        [id]
+      )
     }
-    ctx.body = success({ message: '已撤销' })
+    
+    await client.query('COMMIT')
+    ctx.body = success({ message: '撤销成功' })
   } catch (err) {
+    await client.query('ROLLBACK')
+    console.error('ReverseApproval error:', err)
     ctx.body = error(500, '撤销失败')
+  } finally {
+    client.release()
   }
 }

@@ -1,28 +1,29 @@
-# API 接口文档
+# API 接口文档 v3.3
+
+> 与代码版本完全一致 | 最后更新: 2026-03-24
+
+---
 
 ## 基础信息
 
-- 基础 URL: `/api`
-- 响应格式: JSON
-- 认证方式: Bearer Token (JWT)
+- **基础 URL**: `/api`
+- **响应格式**: JSON
+- **认证方式**: Bearer Token (JWT)
+- **错误码**: 统一使用 `{ code, message, data }` 格式
+
+---
 
 ## 通用响应格式
 
 ```json
 // 成功
-{
-  "code": 0,
-  "message": "success",
-  "data": {}
-}
+{ "code": 0, "message": "success", "data": {} }
 
 // 错误
-{
-  "code": 1001,
-  "message": "错误描述",
-  "data": null
-}
+{ "code": 1001, "message": "参数错误", "data": null }
 ```
+
+---
 
 ## 错误码
 
@@ -40,303 +41,325 @@
 
 ---
 
+## 目录
+
+- [认证接口](#认证接口)
+- [家庭接口](#家庭接口)
+- [目标接口](#目标接口)
+- [任务接口](#任务接口)
+- [奖励接口](#奖励接口)
+- [兑换接口](#兑换接口)
+- [审批接口](#审批接口)
+- [成就接口](#成就接口)
+- [签到接口](#签到接口)
+- [连续打卡接口](#连续打卡接口)
+- [统计接口](#统计接口)
+- [贴纸接口](#贴纸接口)
+- [宠物接口](#宠物接口)
+- [转盘接口](#转盘接口)
+- [周报接口](#周报接口)
+- [展示设置接口](#展示设置接口)
+- [头像接口](#头像接口)
+- [备份接口](#备份接口)
+
+---
+
 ## 认证接口
 
-### POST /api/auth/login
-设备登录
+### POST /api/auth/register/parent
+**家长注册**
 
-**请求参数**
 ```json
+// 请求
 {
-  "deviceId": "设备唯一标识"
+  "phone": "手机号",
+  "password": "密码",
+  "nickname": "昵称",
+  "familyName": "家庭名称(可选)",
+  "inviteCode": "邀请码(可选，已有家庭时填)"
 }
-```
 
-**响应**
-```json
+// 响应
 {
   "code": 0,
   "data": {
     "token": "jwt-token",
+    "refreshToken": "refresh-token",
     "user": {
       "id": "uuid",
-      "nickname": "瑶瑶",
-      "role": "child"
+      "nickname": "昵称",
+      "role": "admin",
+      "familyId": "uuid",
+      "familyName": "家庭名称",
+      "level": 1,
+      "stars": 0
     }
   }
 }
 ```
 
-### POST /api/auth/register
-注册新用户
+### POST /api/auth/register/child
+**孩子注册**
 
-**请求参数**
 ```json
-{
-  "nickname": "瑶瑶",
-  "role": "child",  // parent / child
-  "deviceId": "设备标识"
-}
+// 请求
+{ "inviteCode": "家庭邀请码", "nickname": "孩子昵称" }
+
+// 响应
+{ "code": 0, "data": { "token": "...", "refreshToken": "...", "user": {...} } }
 ```
+
+### POST /api/auth/login/parent
+**家长登录**
+
+```json
+// 请求
+{ "phone": "手机号", "password": "密码" }
+```
+
+### POST /api/auth/login/device
+**设备登录（免密码）**
+
+```json
+// 请求
+{ "deviceId": "设备ID" }  // 或 { "userId": "用户UUID" }
+```
+
+### POST /api/auth/refresh
+**刷新 Token**
+
+```json
+// 请求
+{ "refreshToken": "refresh-token" }
+```
+
+### GET /api/auth/me
+**获取当前用户信息**（需认证）
 
 ---
 
 ## 家庭接口
 
 ### GET /api/family
-获取家庭信息
-
-**响应**
-```json
-{
-  "code": 0,
-  "data": {
-    "id": "uuid",
-    "name": "蹦蹦跳跳真可爱",
-    "code": "ABC123",
-    "members": [
-      {
-        "id": "uuid",
-        "nickname": "瑶瑶",
-        "role": "child",
-        "level": 1,
-        "stars": 0
-      }
-    ]
-  }
-}
-```
+**获取家庭信息**（需认证）
 
 ### PUT /api/family
-更新家庭信息
+**更新家庭信息**（需认证）
 
-**请求参数**
 ```json
-{
-  "name": "新家庭名"
-}
+{ "name": "新家庭名称" }
 ```
 
-### POST /api/family/join
-加入家庭
+### POST /api/family/child
+**添加孩子**（家长，需认证）
 
-**请求参数**
 ```json
-{
-  "code": "邀请码"
-}
+{ "nickname": "孩子昵称" }
 ```
 
----
+### GET /api/family/children
+**获取所有孩子列表**（需认证）
 
-## 用户接口
+### GET /api/family/by-code/:code
+**通过邀请码获取家庭信息**
 
-### GET /api/users/:id
-获取用户信息
+### POST /api/family/invite
+**生成/获取家庭邀请码**（需认证）
 
-### PUT /api/users/:id
-更新用户信息
+### GET /api/family/children-task-progress
+**获取所有孩子今日任务进度**（家长，需认证）
 
-**请求参数**
-```json
-{
-  "nickname": "新昵称",
-  "avatar": "头像URL"
-}
-```
-
-### GET /api/users/:id/stats
-获取用户统计
-
-**响应**
-```json
-{
-  "code": 0,
-  "data": {
-    "totalStars": 50,
-    "level": 3,
-    "tasksCompleted": 25,
-    "goalsAchieved": 2,
-    "exchangesCount": 1
-  }
-}
-```
-
-### GET /api/leaderboard
-获取排行榜
-
-**查询参数**: `type` - wish | level | streak | exchange
+### DELETE /api/family/member/:userId
+**移除家庭成员**（家长，需认证）
 
 ---
 
 ## 目标接口
 
 ### GET /api/goals
-获取目标列表
-
-**查询参数**
-- `userId`: 用户 ID（可选）
-
-**响应**
-```json
-{
-  "code": 0,
-  "data": [
-    {
-      "id": "uuid",
-      "title": "坚持阅读",
-      "icon": "book",
-      "difficulty": 10,
-      "starTarget": 10,
-      "currentStars": 3,
-      "status": "active"
-    }
-  ]
-}
-```
+**获取目标列表**（需认证）
 
 ### POST /api/goals
-创建目标
+**创建目标**（需认证）
 
-**请求参数**
 ```json
 {
-  "title": "坚持阅读",
-  "icon": "book",
+  "title": "目标名称",
+  "icon": "图标",
   "difficulty": 10,
-  "userId": "用户UUID"  // 可选，null 表示通用目标
+  "userId": "用户UUID(可选，为空表示通用目标)"
 }
 ```
 
 ### PUT /api/goals/:id
-更新目标
+**更新目标**（需认证）
+
+```json
+{
+  "title": "新名称",
+  "icon": "新图标",
+  "difficulty": 15,
+  "starTarget": 20,
+  "status": "active|completed|abandoned",
+  "currentStars": 5
+}
+```
 
 ### DELETE /api/goals/:id
-删除目标
+**删除目标（软删除）**（需认证）
 
 ---
 
 ## 任务接口
 
 ### GET /api/tasks
-获取任务列表
+**获取任务列表**（需认证）
 
-**查询参数**
-- `goalId`: 目标 ID（可选）
-- `type`: challenge | reward
-
-**响应**
 ```json
-{
-  "code": 0,
-  "data": [
-    {
-      "id": "uuid",
-      "title": "按时起床",
-      "icon": "alarm",
-      "starReward": 2,
-      "rarity": "SR",
-      "frequency": "daily",
-      "frequencyCount": 1
-    }
-  ]
-}
-```
-
-### POST /api/tasks
-创建任务
-
-**请求参数**
-```json
-{
-  "title": "按时起床",
-  "icon": "alarm",
-  "starReward": 2,
-  "rarity": "SR",
-  "frequency": "daily",
-  "frequencyCount": 1,
-  "goalId": "目标UUID"  // 可选
-}
-```
-
-### POST /api/tasks/:id/complete
-完成任务
-
-**响应**
-```json
+// 响应
 {
   "code": 0,
   "data": {
-    "starsEarned": 2,
-    "totalStars": 5,
-    "goalProgress": {
-      "current": 5,
-      "target": 10
-    }
+    "daily": [{ "id": "uuid", "title": "按时起床", "completed": false, "pendingApproval": false, ... }],
+    "weekly": [...],
+    "special": [...]
   }
 }
 ```
 
+### POST /api/tasks
+**创建任务**（家长，需认证）
+
+```json
+{
+  "title": "任务名称",
+  "starReward": 2,
+  "frequency": "daily|weekly|once",
+  "rarity": "N|R|SR|SSR",
+  "icon": "图标",
+  "goalId": "目标UUID(可选)"
+}
+```
+
+### PUT /api/tasks/:id
+**更新任务**（家长，需认证）
+
+### DELETE /api/tasks/:id
+**删除任务（软删除）**（家长，需认证）
+
+### POST /api/tasks/:id/complete
+**完成任务**（孩子，需认证）
+
+> ⚠️ 会检查本周期是否已提交，防止重复
+
 ### POST /api/tasks/:id/skip
-跳过任务
+**跳过任务**（孩子，需认证）
+
+> ⚠️ 会检查本周期是否已操作
+
+### GET /api/tasks/student-status
+**获取学生任务状态**（家长，需认证）
+
+### POST /api/tasks/log/:id/approve
+**审批任务**（家长，需认证）
+
+```json
+{ "approved": true, "taskType": "daily" }
+```
+
+### POST /api/tasks/deduct
+**扣减学生星星**（家长，需认证）
+
+```json
+{ "studentId": "uuid", "stars": 5, "reason": "原因" }
+```
 
 ---
 
 ## 奖励接口
 
 ### GET /api/rewards
-获取奖励列表
-
-**响应**
-```json
-{
-  "code": 0,
-  "data": [
-    {
-      "id": "uuid",
-      "title": "玩手机20分钟",
-      "icon": "phone",
-      "starCost": 30,
-      "rarity": "epic"
-    }
-  ]
-}
-```
+**获取奖励列表**（需认证）
 
 ### POST /api/rewards
-创建奖励
+**创建奖励**（家长，需认证）
+
+```json
+{ "title": "奖励名称", "starCost": 30, "rarity": "normal", "icon": "图标" }
+```
 
 ### PUT /api/rewards/:id
-更新奖励
+**更新奖励**（需认证）
+
+```json
+{ "title": "新名称", "starCost": 25, "isActive": true, "sortOrder": 1 }
+```
 
 ### DELETE /api/rewards/:id
-删除奖励
+**删除奖励（软删除）**（需认证）
 
 ---
 
 ## 兑换接口
 
-### GET /api/exchanges
-获取兑换记录
-
 ### POST /api/exchanges
-发起兑换
+**发起兑换**（孩子，需认证）
 
-**请求参数**
 ```json
-{
-  "rewardId": "奖励UUID"
-}
+{ "rewardId": "奖励UUID" }
 ```
 
-### PUT /api/exchanges/:id
-更新兑换状态
+### GET /api/exchanges/pending
+**获取待审批兑换列表**（家长，需认证）
 
-**请求参数**
+### PUT /api/exchanges/:id/approve
+**批准兑换**（家长，需认证）
+
+### PUT /api/exchanges/:id/reject
+**拒绝兑换**（家长，需认证）
+
+### GET /api/exchanges/history
+**获取兑换历史**（需认证）
+
 ```json
-{
-  "status": "completed"  // pending / completed / cancelled
-}
+// 可选查询参数
+?childId=uuid  // 家长可指定查看某个孩子的记录
+```
+
+### GET /api/exchanges/student-history
+**获取所有孩子兑换记录**（家长，需认证）
+
+---
+
+## 审批接口
+
+> 统一的审批入口，可以审批任务和兑换
+
+### GET /api/approvals/pending
+**获取所有待审批项目**
+
+### GET /api/approvals/history
+**获取审批历史**
+
+### PUT /api/approvals/task/:id
+**审批任务**
+
+```json
+{ "approved": true }
+```
+
+### PUT /api/approvals/exchange/:id
+**审批兑换**
+
+```json
+{ "approved": true }
+```
+
+### PUT /api/approvals/reverse/:id
+**撤销已批准的审批**
+
+```json
+{ "type": "task" | "exchange" }
 ```
 
 ---
@@ -344,158 +367,104 @@
 ## 成就接口
 
 ### GET /api/achievements
-获取成就列表
+**获取所有成就定义**（需认证）
 
-**响应**
-```json
-{
-  "code": 0,
-  "data": {
-    "stats": {
-      "goalsAchieved": 0,
-      "totalStars": 0,
-      "tasksCompleted": 0,
-      "level": 1
-    },
-    "achievements": [
-      {
-        "id": "uuid",
-        "type": "task_count",
-        "title": "任务达人",
-        "count": 10,
-        "unlockedAt": null
-      }
-    ],
-    "leaderboard": {
-      "wish": [...],
-      "level": [...],
-      "streak": [...],
-      "exchange": [...]
-    }
-  }
-}
-```
-
----
-
-## 日志接口
-
-### GET /api/logs
-获取日志列表
-
-**查询参数**
-- `type`: task | exchange（可选）
-- `limit`: 数量（默认 20）
-- `offset`: 偏移（默认 0）
-
----
-
-## 统计接口
-
-### GET /api/statistics/daily-stars/:childId
-获取近30日每日积分统计
-
-**响应**
-
-
-### GET /api/statistics/daily-tasks/:childId
-获取每日任务完成详情（分页）
-
-**查询参数**
-- : 偏移量（默认 0）
-- : 每页数量（默认 7）
-
-**响应**
-
-
-### GET /api/statistics/new-rewards/:childId
-获取24小时内新获得的成就和贴纸（用于弹窗提醒）
-
-**响应**
-
-
----
-
-## 贴纸接口
-
-### GET /api/stickers
-获取所有贴纸列表
-
-### GET /api/stickers/user/:userId
-获取用户拥有的贴纸
-
-### GET /api/stickers/user/:userId/ids
-获取用户拥有的贴纸ID列表
-
----
-
-## 展示设置接口
-
-### GET /api/display/:userId
-获取用户展示设置
-
-### PUT /api/display/:userId
-更新用户展示设置
-
-**请求参数**
-
+### GET /api/achievements/user/:userId
+**获取用户已解锁的成就**
 
 ---
 
 ## 签到接口
 
-### GET /api/signin/:userId
-获取用户签到状态
+### GET /api/signin/info/:userId
+**获取用户签到信息**
 
-### POST /api/signin/:userId
-签到
+```json
+{
+  "code": 0,
+  "data": {
+    "checkedIn": false,        // 今天是否已签到
+    "streakDays": 3,           // 当前连续天数
+    "todayBonus": 2,          // 今日签到可获奖励
+    "canClaim": true,         // 是否可以签到
+    "monthDays": [1, 2, 3, 5] // 本月已签到的日期
+  }
+}
+```
 
-**响应**
+> 签到奖励规则：1,1,2,2,2,3,5（七天循环）
 
+### POST /api/signin/checkin
+**执行签到**
 
+```json
+{ "userId": "uuid" }
+
+// 响应
+{
+  "code": 0,
+  "data": {
+    "streakDays": 4,
+    "bonusStars": 2,
+    "totalStars": 15
+  }
+}
+```
+
+### GET /api/signin/history/:userId
+**获取签到历史**
+
+---
+
+## 连续打卡接口
+
+### GET /api/streak/:childId
+**获取连续打卡信息**
+
+```json
+{
+  "code": 0,
+  "data": {
+    "currentStreak": 3,
+    "longestStreak": 7,
+    "checkedInToday": false,
+    "lastCheckinDate": "2026-03-20",
+    "todayBonus": 0
+  }
+}
+```
+
+> ⚠️ 数据来源于签到系统，本接口为只读
+
+### GET /api/streak/:childId/achievements
+**获取连续打卡成就进度**
 
 ---
 
 ## 统计接口
 
 ### GET /api/statistics/daily-stars/:childId
-获取近30日每日积分统计
+**获取近30日每日积分统计**
 
-**响应**
 ```json
 {
   "code": 0,
   "data": [
-    {
-      "date": "3月21日",
-      "stars": 10
-    }
+    { "date": "3月24日", "dateKey": "2026-03-24", "stars": 10 },
+    ...
   ]
 }
 ```
 
 ### GET /api/statistics/daily-tasks/:childId
-获取每日任务完成详情（分页）
+**获取每日任务完成详情**
 
-**查询参数**
-- `offset`: 偏移量（默认 0）
-- `limit`: 每页数量（默认 7）
-
-**响应**
 ```json
+// 查询参数: ?offset=0&limit=7
 {
   "code": 0,
   "data": {
-    "items": [
-      {
-        "completed_date": "2026-03-21",
-        "title": "按时起床",
-        "icon": "todo-o",
-        "stars_earned": 5,
-        "action": "completed",
-        "star_reward": 2
-      }
-    ],
+    "items": [...],
     "totalDays": 30,
     "hasMore": true
   }
@@ -503,31 +472,33 @@
 ```
 
 ### GET /api/statistics/new-rewards/:childId
-获取24小时内新获得的成就和贴纸（用于弹窗提醒）
+**获取24小时内新获得的成就和贴纸**
 
-**响应**
 ```json
 {
   "code": 0,
   "data": {
-    "achievements": [
-      {
-        "id": "uuid",
-        "name": "小试牛刀",
-        "description": "累计完成10个任务",
-        "reward_stars": 5,
-        "unlocked_at": "2026-03-20T11:26:40.946Z"
-      }
-    ],
-    "stickers": [
-      {
-        "id": "uuid",
-        "emoji": "⭐",
-        "name": "小星星",
-        "rarity": "N",
-        "earned_at": "2026-03-20T11:26:40.946Z"
-      }
-    ]
+    "achievements": [...],
+    "stickers": [...],
+    "hasNew": true
+  }
+}
+```
+
+### GET /api/statistics/week-summary/:childId
+**获取本周统计数据**
+
+```json
+{
+  "code": 0,
+  "data": {
+    "weekStart": "2026-03-23",
+    "today": "2026-03-24",
+    "tasksCompleted": 10,
+    "tasksSkipped": 2,
+    "completionRate": 83,
+    "starsEarned": 12,
+    "signinDays": 5
   }
 }
 ```
@@ -537,93 +508,121 @@
 ## 贴纸接口
 
 ### GET /api/stickers
-获取所有贴纸列表
+**获取所有贴纸列表**
 
 ### GET /api/stickers/user/:userId
-获取用户拥有的贴纸
+**获取用户拥有的贴纸**
 
 ### GET /api/stickers/user/:userId/ids
-获取用户拥有的贴纸ID列表
+**获取用户拥有的贴纸ID列表**
 
 ---
 
-## 展示设置接口
+## 宠物接口
 
-### GET /api/display/:userId
-获取用户展示设置
+### GET /api/pet/info/:userId
+**获取宠物信息**
 
-### PUT /api/display/:userId
-更新用户展示设置
-
-**请求参数**
-```json
-{
-  "equipped_achievement_id": "成就UUID",
-  "equipped_sticker1_id": "贴纸UUID",
-  "equipped_sticker2_id": "贴纸UUID"
-}
-```
-
----
-
-## 签到接口
-
-### GET /api/signin/:userId
-获取用户签到状态
-
-### POST /api/signin/:userId
-签到
-
-**响应**
 ```json
 {
   "code": 0,
   "data": {
-    "signed": true,
-    "streak": 3,
-    "reward": 2
+    "pet_type": "rabbit",
+    "hunger": 100,
+    "cleanliness": 100,
+    "mood": 100,
+    "intimacy": 0,
+    "pet_level": 1
   }
 }
 ```
+
+### POST /api/pet/care
+**照顾宠物**
+
+```json
+{ "userId": "uuid", "action": "feed|bath|park|sleep" }
+
+// 响应
+{
+  "code": 0,
+  "data": {
+    "hunger": 100,
+    "cleanliness": 100,
+    "mood": 100,
+    "intimacy": 3,
+    "petLevel": 1,
+    "actionCost": 5,
+    "actionName": "喂食",
+    "unlockedPets": ["rabbit"]
+  }
+}
+```
+
+| action | 消耗星星 | 饱腹 | 清洁 | 心情 | 亲密度 |
+|--------|---------|------|------|------|-------|
+| feed | 5 | +30 | 0 | +5 | +3 |
+| bath | 8 | 0 | +25 | +10 | +4 |
+| park | 10 | -5 | -10 | +35 | +5 |
+| sleep | 3 | -10 | 0 | +20 | +2 |
+
+### PUT /api/pet/change
+**更换宠物**
+
+```json
+{ "userId": "uuid", "petType": "fox" }
+// 需要亲密度达到解锁要求
+```
+
+### GET /api/pet/all/:userId
+**获取所有宠物及解锁状态**
+
+| 宠物 | 解锁亲密度 | Emoji |
+|------|----------|-------|
+| 兔子 | 0 | 🐰 |
+| 狐狸 | 50 | 🦊 |
+| 猫 | 100 | 🐱 |
+| 狗 | 150 | 🐶 |
+| 熊 | 250 | 🐻 |
+| 熊猫 | 400 | 🐼 |
 
 ---
 
 ## 转盘接口
 
 ### GET /api/wheel/config
-获取转盘配置和奖品列表
+**获取转盘配置和奖品列表**
+
+### GET /api/wheel/today/:userId
+**检查今日是否已转动转盘**
+
+```json
+{ "code": 0, "data": { "spun": true, "spinRecord": {...} } }
+```
 
 ### POST /api/wheel/spin/:userId
-用户转动转盘
+**转动转盘**
 
-**响应**
 ```json
+// 响应
 {
   "code": 0,
   "data": {
-    "prize": {
-      "id": "uuid",
-      "name": "2星",
-      "prize_type": "stars",
-      "prize_value": 2
-    },
-    "remainingSpins": 0
+    "prize": { "id": "uuid", "name": "2星", "emoji": "⭐", "type": "stars" },
+    "reward": { "type": "stars", "value": 2 }
   }
 }
 ```
 
 ---
 
-## 每周报告接口
+## 周报接口
 
 ### GET /api/report/weekly/:childId
-获取指定孩子的周报
+**获取周报**
 
-**查询参数**
-- `type`: `last` - 获取上周报告（周一弹窗用）
-
-**响应**
 ```json
+// 查询参数: ?type=last 获取上周报告
 {
   "code": 0,
   "data": {
@@ -648,95 +647,119 @@
       "completed_change": 2,
       "stars_change": 2
     },
-    "daily_details": [
-      {
-        "date": "2026-03-16",
-        "total": 14,
-        "completed": 12,
-        "skipped": 1,
-        "stars": 12
-      }
-    ],
-    "signins": [
-      {
-        "sign_date": "2026-03-16",
-        "streak_days": 3,
-        "bonus_stars": 2
-      }
-    ],
-    "new_achievements": [
-      {
-        "id": "uuid",
-        "name": "小试牛刀",
-        "description": "累计完成10个任务",
-        "reward_stars": 5
-      }
-    ],
-    "new_stickers": [
-      {
-        "id": "uuid",
-        "emoji": "⭐",
-        "name": "小星星",
-        "rarity": "N"
-      }
-    ],
+    "daily_details": [...],
+    "signins": [...],
+    "new_achievements": [...],
+    "new_stickers": [...],
     "viewed": false
   }
 }
 ```
 
 ### PUT /api/report/weekly/:childId/viewed
-标记周报为已读
+**标记周报为已读**
 
 ---
 
-## 签到接口
+## 展示设置接口
 
-### GET /api/signin/info/:userId
-获取用户签到信息
+### GET /api/display/settings/:userId
+**获取用户展示设置**
 
-**响应**
+### PUT /api/display/settings
+**更新用户展示设置**
+
 ```json
 {
-  "code": 0,
-  "data": {
-    "checkedIn": false,
-    "streakDays": 3,
-    "todayBonus": 2,
-    "canClaim": true,
-    "monthDays": [1, 2, 3, 5, 6, 7, 8]
-  }
-}
-```
-
-### POST /api/signin/checkin
-执行签到
-
-**请求参数**
-```json
-{
-  "userId": "uuid"
-}
-```
-
-**响应**
-```json
-{
-  "code": 0,
-  "data": {
-    "streakDays": 4,
-    "bonusStars": 2,
-    "totalStars": 15
-  }
+  "userId": "uuid",
+  "equippedAchievementId": "成就UUID",
+  "equippedSticker1Id": "贴纸UUID",
+  "equippedSticker2Id": "贴纸UUID",
+  "theme": "pink",
+  "pet": "rabbit",
+  "avatarId": "头像UUID"
 }
 ```
 
 ---
 
-## 成就接口
+## 头像接口
 
-### GET /api/achievements
-获取所有成就定义
+### GET /api/avatars
+**获取所有头像列表**
 
-### GET /api/achievements/user/:userId
-获取用户已解锁的成就
+```json
+[
+  { "id": "uuid", "name": "小兔子", "filename": "rabbit.png", "category": "cartoon", "url": "/avatars/rabbit.png" },
+  ...
+]
+```
+
+---
+
+## 备份接口
+
+### GET /api/backup/export/:userId
+**导出用户数据**
+
+### GET /api/backup/family/:familyId
+**备份整个家庭数据**（家长）
+
+---
+
+## 日志接口
+
+### GET /api/logs
+**获取日志列表**（需认证）
+
+```json
+// 查询参数: ?limit=50&offset=0
+```
+
+---
+
+## 数据字典
+
+### 用户角色 (role)
+| 值 | 说明 |
+|----|------|
+| admin | 家长/管理员 |
+| parent | 家长（同admin） |
+| child | 孩子 |
+
+### 任务频率 (frequency)
+| 值 | 说明 |
+|----|------|
+| daily | 每日任务 |
+| weekly | 每周任务 |
+| special | 特殊任务 |
+| once | 一次性任务 |
+
+### 贴纸稀有度 (rarity)
+| 值 | 说明 |
+|----|------|
+| N | 普通 |
+| R | 稀有 |
+| SR | 超稀有 |
+| SSR | 传说 |
+
+### 审批状态 (approval_status)
+| 值 | 说明 |
+|----|------|
+| pending | 待审批 |
+| approved | 已批准 |
+| rejected | 已拒绝 |
+
+### 兑换状态 (status)
+| 值 | 说明 |
+|----|------|
+| pending | 待审批 |
+| completed/approved | 已完成/已批准 |
+| cancelled/rejected | 已取消/已拒绝 |
+
+### 目标状态 (status)
+| 值 | 说明 |
+|----|------|
+| active | 进行中 |
+| completed | 已完成 |
+| abandoned | 已放弃 |

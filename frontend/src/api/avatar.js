@@ -4,10 +4,10 @@ export function getAvatars() {
   return request({ url: '/avatars', method: 'GET' })
 }
 
-export function updateAvatar(avatarId) {
+export function updateAvatar(userId, avatarId) {
   return request({ 
-    url: '/api/display/avatar', 
+    url: '/display/settings', 
     method: 'PUT',
-    data: { avatar_id: avatarId }
+    data: { userId, avatarId }
   })
 }

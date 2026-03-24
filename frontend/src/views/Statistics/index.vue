@@ -125,8 +125,9 @@
           </template>
           <template #right-icon>
             <div class="task-status" :class="task.action">
-              <span v-if="task.action === 'completed'" class="stars">+{{ task.star_reward }} ★</span>
-              <span v-else class="skipped">已跳过</span>
+              <span v-if="task.action === 'complete'" class="stars">+{{ task.star_reward || task.stars_earned }} ★</span>
+              <span v-else-if="task.action === 'skipped'" class="skipped">已跳过</span>
+              <span v-else class="skipped">{{ task.action }}</span>
             </div>
           </template>
         </van-cell>

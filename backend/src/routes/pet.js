@@ -1,6 +1,7 @@
 import Router from '@koa/router'
 import pool from '../config/database.js'
 import { success, error } from '../utils/response.js'
+import { subtractPoints, PointType } from '../services/points.js'
 
 const router = new Router({ prefix: '/api/pet' })
 
@@ -25,27 +26,31 @@ const ACTIONS = {
 router.get('/info/:userId', async (ctx) => {
   const { userId } = ctx.params
   
-  const result = await pool.query('SELECT * FROM user_pets WHERE user_id = $1', [userId])
-  
-  if (result.rows.length === 0) {
-    // 创建默认宠物
-    const newPet = {
-      pet_type: 'rabbit',
-      hunger: 100,
-      cleanliness: 100,
-      mood: 100,
-      intimacy: 0,
-      pet_level: 1
+  try {
+    const result = await pool.query('SELECT * FROM user_pets WHERE user_id = $1', [userId])
+    
+    if (result.rows.length === 0) {
+      // 创建默认宠物
+      await pool.query(
+        'INSERT INTO user_pets (user_id, pet_type, hunger, cleanliness, mood, intimacy, pet_level) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [userId, 'rabbit', 100, 100, 100, 0, 1]
+      )
+      ctx.body = success({
+        pet_type: 'rabbit',
+        hunger: 100,
+        cleanliness: 100,
+        mood: 100,
+        intimacy: 0,
+        pet_level: 1
+      })
+      return
     }
-    await pool.query(
-      'INSERT INTO user_pets (user_id, pet_type, hunger, cleanliness, mood, intimacy, pet_level) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [userId, newPet.pet_type, newPet.hunger, newPet.cleanliness, newPet.mood, newPet.intimacy, newPet.pet_level]
-    )
-    ctx.body = success(newPet)
-    return
+    
+    ctx.body = success(result.rows[0])
+  } catch (err) {
+    console.error('Get pet info error:', err)
+    ctx.body = error(500, '获取宠物信息失败')
   }
-  
-  ctx.body = success(result.rows[0])
 })
 
 // 照顾宠物
@@ -59,6 +64,16 @@ router.post('/care', async (ctx) => {
   
   const act = ACTIONS[action]
   
+  // 使用统一积分服务扣除星星
+  const pointsResult = await subtractPoints(userId, act.cost, PointType.PET_CARE, {
+    description: `照顾宠物-${act.name}`
+  })
+  
+  if (!pointsResult.success) {
+    ctx.body = error(3003, pointsResult.error || '余额不足')
+    return
+  }
+  
   // 获取用户宠物
   const petResult = await pool.query('SELECT * FROM user_pets WHERE user_id = $1', [userId])
   if (petResult.rows.length === 0) {
@@ -67,20 +82,6 @@ router.post('/care', async (ctx) => {
   }
   
   const pet = petResult.rows[0]
-  
-  // 检查星星是否足够
-  const userResult = await pool.query('SELECT stars FROM users WHERE id = $1', [userId])
-  if (userResult.rows[0].stars < act.cost) {
-    ctx.body = error(400, '星星不足')
-    return
-  }
-  
-  // 扣除星星
-  await pool.query('UPDATE users SET stars = stars - $1 WHERE id = $2', [act.cost, userId])
-  await pool.query(
-    'INSERT INTO user_point_summary (user_id, total_used) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_used = user_point_summary.total_used + $2, updated_at = NOW()',
-    [userId, act.cost]
-  )
   
   // 更新宠物状态
   const newHunger = Math.max(0, Math.min(100, pet.hunger + act.hunger))
@@ -92,12 +93,12 @@ router.post('/care', async (ctx) => {
   const newLevel = Math.floor(newIntimacy / 50) + 1
   
   await pool.query(
-    'UPDATE user_pets SET hunger = $1, cleanliness = $2, mood = $3, intimacy = $4, pet_level = $5, updated_at = NOW() WHERE user_id = $6',
+    'UPDATE user_pets SET hunger = $1, cleanliness = $2, mood = $3, intimacy = $4, pet_level = $5, last_interaction = NOW(), updated_at = NOW() WHERE user_id = $6',
     [newHunger, newCleanliness, newMood, newIntimacy, newLevel, userId]
   )
   
   // 检查是否解锁新宠物
-  const unlockedPets = Object.entries(PETS).filter(([_, p]) => newIntimacy >= p.unlock).map(([type, _]) => type)
+  const unlockedPets = Object.entries(PETS).filter(([_, p]) => newIntimacy >= p.unlock).map(([type, p]) => ({ type, ...p }))
   
   ctx.body = success({
     hunger: newHunger,
@@ -107,7 +108,8 @@ router.post('/care', async (ctx) => {
     petLevel: newLevel,
     actionCost: act.cost,
     actionName: act.name,
-    unlockedPets
+    unlockedPets: unlockedPets.map(p => p.type),
+    currentBalance: pointsResult.balance
   })
 })
 
@@ -115,45 +117,57 @@ router.post('/care', async (ctx) => {
 router.put('/change', async (ctx) => {
   const { userId, petType } = ctx.request.body
   
-  if (!PETS[petType]) {
+  if (!petType || !PETS[petType]) {
     ctx.body = error(400, '无效的宠物类型')
     return
   }
   
-  // 获取当前宠物的亲密值
+  // 检查宠物是否已解锁
   const petResult = await pool.query('SELECT intimacy FROM user_pets WHERE user_id = $1', [userId])
   if (petResult.rows.length === 0) {
     ctx.body = error(404, '宠物不存在')
     return
   }
   
-  const intimacy = petResult.rows[0].intimacy
+  const currentIntimacy = petResult.rows[0].intimacy || 0
+  const requiredIntimacy = PETS[petType].unlock
   
-  // 检查是否已解锁
-  if (intimacy < PETS[petType].unlock) {
-    ctx.body = error(400, `需要 ${PETS[petType].unlock} 亲密才能解锁`)
+  if (currentIntimacy < requiredIntimacy) {
+    ctx.body = error(400, `亲密度不足，需要 ${requiredIntimacy} 才能解锁`)
     return
   }
   
-  await pool.query('UPDATE user_pets SET pet_type = $1, updated_at = NOW() WHERE user_id = $2', [petType, userId])
+  await pool.query(
+    'UPDATE user_pets SET pet_type = $1, pet_mood = $2, updated_at = NOW() WHERE user_id = $3',
+    [petType, 'neutral', userId]
+  )
   
-  ctx.body = success({ petType, pet: PETS[petType] })
+  ctx.body = success({
+    petType,
+    petName: PETS[petType].name,
+    emoji: PETS[petType].emoji
+  })
 })
 
 // 获取所有宠物及解锁状态
 router.get('/all/:userId', async (ctx) => {
   const { userId } = ctx.params
   
-  const petResult = await pool.query('SELECT intimacy FROM user_pets WHERE user_id = $1', [userId])
-  const intimacy = petResult.rows[0]?.intimacy || 0
-  
-  const petsWithStatus = Object.entries(PETS).map(([type, config]) => ({
-    type,
-    ...config,
-    unlocked: intimacy >= config.unlock
-  }))
-  
-  ctx.body = success(petsWithStatus)
+  try {
+    const petResult = await pool.query('SELECT intimacy FROM user_pets WHERE user_id = $1', [userId])
+    const currentIntimacy = petResult.rows[0]?.intimacy || 0
+    
+    const pets = Object.entries(PETS).map(([type, config]) => ({
+      type,
+      ...config,
+      unlocked: currentIntimacy >= config.unlock
+    }))
+    
+    ctx.body = success(pets)
+  } catch (err) {
+    console.error('Get all pets error:', err)
+    ctx.body = error(500, '获取宠物列表失败')
+  }
 })
 
 export default router

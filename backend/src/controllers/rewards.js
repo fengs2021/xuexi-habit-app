@@ -1,4 +1,5 @@
 import pool from '../config/database.js'
+import { addPoints, PointType } from '../services/points.js'
 
 export async function awardRandomSticker(userId, taskType) {
   try {
@@ -199,14 +200,10 @@ export async function checkAndAwardAchievements(userId) {
       // 发放成就奖励星星
       const rewardStars = achievement.reward_stars || 0
       if (rewardStars > 0) {
-        await pool.query(
-          'UPDATE users SET stars = stars + $1, total_stars = total_stars + $1 WHERE id = $2',
-          [rewardStars, userId]
-        )
-        await pool.query(
-          'INSERT INTO user_point_summary (user_id, total_earned, total_used) VALUES ($1, $2, 0) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
-          [userId, rewardStars]
-        )
+        await addPoints(userId, rewardStars, PointType.ACHIEVEMENT, {
+          sourceId: achievement.id,
+          description: `解锁成就「${achievement.name}」奖励 ${rewardStars} 星星`
+        })
       }
       
       awarded.push(achievement)

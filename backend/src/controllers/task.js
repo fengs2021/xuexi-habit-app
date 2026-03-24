@@ -2,6 +2,7 @@ import pool from '../config/database.js'
 import { success, error, ErrorCodes } from '../utils/response.js'
 import jwt from 'jsonwebtoken'
 import JWT_SECRET from '../utils/jwt.js'
+import { addPoints, subtractPoints, PointType } from '../services/points.js'
 
 async function getUserFromToken(ctx) {
   const authHeader = ctx.headers.authorization
@@ -126,6 +127,31 @@ export async function completeTask(ctx) {
     
     const task = taskResult.rows[0]
     
+    // 对于每日/每周任务，检查本周期是否已完成
+    if (task.frequency !== 'once') {
+      const now = new Date()
+      let cycleStart = new Date()
+      cycleStart.setHours(0, 0, 0, 0)
+      
+      if (task.frequency === 'weekly') {
+        const dayOfWeek = now.getDay()
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+        cycleStart = new Date(now)
+        cycleStart.setDate(now.getDate() - diff)
+        cycleStart.setHours(0, 0, 0, 0)
+      }
+      
+      const existingResult = await pool.query(
+        `SELECT id FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = 'complete' AND created_at >= $3 LIMIT 1`,
+        [user.id, id, cycleStart.toISOString()]
+      )
+      
+      if (existingResult.rows.length > 0) {
+        ctx.body = error(400, '本周期的任务已完成，请勿重复提交')
+        return
+      }
+    }
+    
     await pool.query(
       'INSERT INTO task_logs (user_id, task_id, action, stars_earned, approval_status) VALUES ($1, $2, $3, $4, $5)',
       [user.id, id, 'complete', task.star_reward, 'pending']
@@ -145,6 +171,39 @@ export async function skipTask(ctx) {
   const { id } = ctx.params
   
   try {
+    // 对于每日/每周任务，检查本周期是否已操作
+    const taskResult = await pool.query('SELECT frequency FROM tasks WHERE id = $1', [id])
+    if (taskResult.rows.length === 0) {
+      ctx.body = error(404, '任务不存在')
+      return
+    }
+    
+    const frequency = taskResult.rows[0].frequency
+    
+    if (frequency !== 'once') {
+      const now = new Date()
+      let cycleStart = new Date()
+      cycleStart.setHours(0, 0, 0, 0)
+      
+      if (frequency === 'weekly') {
+        const dayOfWeek = now.getDay()
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+        cycleStart = new Date(now)
+        cycleStart.setDate(now.getDate() - diff)
+        cycleStart.setHours(0, 0, 0, 0)
+      }
+      
+      const existingResult = await pool.query(
+        `SELECT id FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action IN ('complete', 'skipped') AND created_at >= $3 LIMIT 1`,
+        [user.id, id, cycleStart.toISOString()]
+      )
+      
+      if (existingResult.rows.length > 0) {
+        ctx.body = error(400, '本周期的任务已操作，无法跳过')
+        return
+      }
+    }
+    
     await pool.query(
       'INSERT INTO task_logs (user_id, task_id, action, stars_earned, approval_status) VALUES ($1, $2, $3, 0, $4)',
       [user.id, id, 'skipped', 'approved']
@@ -266,20 +325,18 @@ export async function approveTaskLog(ctx) {
     let newAchievements = []
     
     if (approved) {
-      await client.query(
-        'UPDATE users SET stars = stars + $1 WHERE id = $2',
-        [log.stars_earned || 1, log.user_id]
-      )
+      const starsEarned = log.stars_earned || 1
       
-      // 更新积分汇总表
-      await client.query(
-        'INSERT INTO user_point_summary (user_id, total_earned) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
-        [log.user_id, log.stars_earned || 1]
-      )
+      // 使用统一积分服务增加星星
+      await addPoints(log.user_id, starsEarned, PointType.TASK_APPROVE, {
+        sourceId: log.id,
+        description: `完成任务获得 ${starsEarned} 星星`
+      })
       
       // 导入奖励函数并发放贴纸
       try {
-        const { awardRandomSticker, checkAndAwardAchievements } = await import('./rewards.js')
+        const rewardsModule = await import('./rewards.js')
+        const { awardRandomSticker, checkAndAwardAchievements } = rewardsModule
         stickerResult = await awardRandomSticker(log.user_id, taskType || 'daily')
         newAchievements = await checkAndAwardAchievements(log.user_id)
       } catch (e) {
@@ -290,6 +347,7 @@ export async function approveTaskLog(ctx) {
     await client.query('COMMIT')
     ctx.body = success({ 
       message: approved ? '已批准' : '已拒绝',
+      starsAdded: approved ? (log.stars_earned || 1) : 0,
       sticker: stickerResult,
       newAchievements: newAchievements
     })
@@ -336,22 +394,21 @@ export async function deductStars(ctx) {
     
     const student = studentResult.rows[0]
     
-    // 扣除积分（负数）
-    await client.query(
-      'UPDATE users SET stars = stars - $1 WHERE id = $2',
-      [deductStars, studentId]
-    )
+    // 使用统一积分服务扣除星星
+    const deductResult = await subtractPoints(studentId, deductStars, PointType.DEDUCT, {
+      description: `家长扣分：${reason || '无原因'}（-${deductStars}）`
+    })
     
-    // 记录到 task_logs（作为一种特殊的惩罚记录）
-    await client.query(
-      'INSERT INTO task_logs (user_id, task_id, action, stars_earned, approval_status, completed_date) VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)',
-      [studentId, '00000000-0000-0000-0000-000000000000', 'punishment', -deductStars, 'approved']
-    )
+    if (!deductResult.success) {
+      await client.query('ROLLBACK')
+      ctx.body = error(3003, deductResult.error || '扣分失败')
+      return
+    }
     
-    // 更新积分汇总表
+    // 记录到 task_logs（作为一种特殊的惩罚记录，task_id 设为 NULL）
     await client.query(
-      'INSERT INTO user_point_summary (user_id, total_used) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_used = user_point_summary.total_used + $2, updated_at = NOW()',
-      [studentId, deductStars]
+      'INSERT INTO task_logs (user_id, task_id, action, stars_earned, approval_status, completed_date) VALUES ($1, NULL, $2, $3, $4, CURRENT_DATE)',
+      [studentId, 'punishment', -deductStars, 'approved']
     )
     
     await client.query('COMMIT')

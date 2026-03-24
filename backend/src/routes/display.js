@@ -19,7 +19,6 @@ router.get('/settings/:userId', async (ctx) => {
 
 router.put('/settings', async (ctx) => {
   const { userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme, pet, avatarId } = ctx.request.body
-  console.log('PUT settings:', { userId, equippedAchievementId, equippedSticker1Id, equippedSticker2Id, theme, pet, avatarId })
   try {
     await pool.query(
       `INSERT INTO user_display_settings (user_id, equipped_achievement_id, equipped_sticker1_id, equipped_sticker2_id, theme, pet, avatar_id, updated_at)
