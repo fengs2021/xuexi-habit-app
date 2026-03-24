@@ -345,9 +345,9 @@ const deleteTask = async (id) => {
   }
 }
 
-const handleComplete = async (id) => {
+const handleComplete = async (task) => {
   try {
-    await completeTask(id)
+    await completeTask(task.id)
     showToast('已提交家长审批')
     await loadTasks()
   } catch (error) {
@@ -355,9 +355,9 @@ const handleComplete = async (id) => {
   }
 }
 
-const handleSkip = async (id) => {
+const handleSkip = async (task) => {
   try {
-    await skipTask(id)
+    await skipTask(task.id)
     showToast('已跳过')
     await loadTasks()
   } catch (error) {

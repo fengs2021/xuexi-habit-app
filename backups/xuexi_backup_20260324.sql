@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 9pzTaiGfFwby4K6MVjoO6cPgyO1YZ04RtlLcxm1HjIb1bu7e4SXsFf1ZUvYIMkR
+\restrict CC0lIUBdAZ3IL9ahvUx39Ou0hdGHpKeSaA5CkfblDPDjFrDjJxLRboteQmZmh94
 
 -- Dumped from database version 15.17
 -- Dumped by pg_dump version 15.17
@@ -52,6 +52,23 @@ CREATE TABLE public.achievement_definitions (
 
 
 ALTER TABLE public.achievement_definitions OWNER TO postgres;
+
+--
+-- Name: avatars; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.avatars (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    name character varying(50) NOT NULL,
+    filename character varying(100) NOT NULL,
+    category character varying(30) DEFAULT 'cartoon'::character varying,
+    url character varying(255),
+    is_active boolean DEFAULT true,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.avatars OWNER TO postgres;
 
 --
 -- Name: exchange_approvals; Type: TABLE; Schema: public; Owner: postgres
@@ -297,7 +314,8 @@ CREATE TABLE public.user_display_settings (
     equipped_sticker1_id uuid,
     equipped_sticker2_id uuid,
     pet character varying(50) DEFAULT 'rabbit'::character varying,
-    theme character varying(20) DEFAULT 'pink'::character varying
+    theme character varying(20) DEFAULT 'pink'::character varying,
+    avatar_id uuid
 );
 
 
@@ -452,6 +470,23 @@ a1000001-0000-0000-0000-000000000024	count_task_100	单项任务100次	同一个
 
 
 --
+-- Data for Name: avatars; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.avatars (id, name, filename, category, url, is_active, created_at) FROM stdin;
+fd17d9d8-04a9-47da-956b-bc6435b75019	小猪佩奇	peppa.jpg	peppa	\N	t	2026-03-23 17:39:21.67609
+a1000086-3d8c-44a2-b60f-6b8f8058e8c4	汪汪队-Chase	chase.jpg	pawpatrol	\N	t	2026-03-23 17:39:21.67609
+f25a8183-32ec-4cbe-a89b-47777c993b78	汪汪队-Marshall	marshall.jpg	pawpatrol	\N	t	2026-03-23 17:39:21.67609
+6fe69498-5e2e-4e81-836e-c8580eecdd62	冰雪奇缘-Elsa	elsa.jpg	disney	\N	t	2026-03-23 17:39:21.67609
+cb0daaf9-bffd-453e-af16-76c423a4e457	美女与野兽-Belle	belle.jpg	disney	\N	t	2026-03-23 17:39:21.67609
+3a85ebb5-ec69-42ec-ae4a-1eda1a417427	灰姑娘-Cinderella	cinderella.jpg	disney	\N	t	2026-03-23 17:39:21.67609
+249cd9c1-8e3b-40c9-9613-360cc3ea4080	海洋奇缘-Moana	moana.jpg	disney	\N	t	2026-03-23 17:39:21.67609
+8652fa4b-bd14-45fa-836e-d0a2c3c2bcca	公主与青蛙-Tiana	tiana.jpg	disney	\N	t	2026-03-23 17:39:21.67609
+32ccad27-a1f6-4f37-8e3d-747c3bdcef90	长发公主-Rapunzel	rapunzel.jpg	disney	\N	t	2026-03-23 17:39:21.67609
+\.
+
+
+--
 -- Data for Name: exchange_approvals; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -530,6 +565,7 @@ c420f8e8-feec-474a-af6a-0fc370ba86f1	e219e32e-8a38-4a4f-bce6-290e24ef4dcf	eyJhbG
 5df0a49e-335a-42c3-a8ec-f3b32901cd9d	e219e32e-8a38-4a4f-bce6-290e24ef4dcf	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImUyMTllMzJlLThhMzgtNGE0Zi1iY2U2LTI5MGUyNGVmNGRjZiIsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNzc0Mjg1OTQxLCJleHAiOjE3NzQ4OTA3NDF9.LF8Rd7XameUK-g1e34nLYJtubXIm8QZMrcNkTD1SKD8	2026-03-30 17:12:21.808259	2026-03-23 17:12:21.808259
 1fd88cd6-7bcd-4216-a8ad-27c600625cb4	e219e32e-8a38-4a4f-bce6-290e24ef4dcf	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImUyMTllMzJlLThhMzgtNGE0Zi1iY2U2LTI5MGUyNGVmNGRjZiIsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNzc0Mjg2MDA3LCJleHAiOjE3NzQ4OTA4MDd9.eSe2cOx5OJGCIWiGF4gS7ADS0EQVp6fG1zI8kuk87dg	2026-03-30 17:13:27.842246	2026-03-23 17:13:27.842246
 54fa4724-85e5-42f1-be73-10bee62c4fd3	e219e32e-8a38-4a4f-bce6-290e24ef4dcf	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImUyMTllMzJlLThhMzgtNGE0Zi1iY2U2LTI5MGUyNGVmNGRjZiIsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNzc0Mjg2MDg3LCJleHAiOjE3NzQ4OTA4ODd9.A6l-vhj7LGuhFLiik3rYeKB1Rtjkzp8jCWvLRNsX9GE	2026-03-30 17:14:47.425603	2026-03-23 17:14:47.425603
+0648c0c8-fa8d-4ea6-a809-c0fe326c6cc3	e219e32e-8a38-4a4f-bce6-290e24ef4dcf	eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImUyMTllMzJlLThhMzgtNGE0Zi1iY2U2LTI5MGUyNGVmNGRjZiIsInR5cGUiOiJyZWZyZXNoIiwiaWF0IjoxNzc0Mjg5OTcwLCJleHAiOjE3NzQ4OTQ3NzB9.flVjcIf2QmsnJLaN8G4W2Xe-yiyTMJ8stu8z6uJR97Q	2026-03-30 18:19:30.164887	2026-03-23 18:19:30.164887
 \.
 
 
@@ -672,8 +708,8 @@ e2f0d276-5576-4333-82e7-dabf53a8df8a	b9110cbb-f73a-4599-81f4-4972beb70df4	2026-0
 -- Data for Name: user_display_settings; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.user_display_settings (id, user_id, equipped_stickers, equipped_achievements, theme_color, created_at, updated_at, equipped_achievement_id, equipped_sticker_id, equipped_sticker1_id, equipped_sticker2_id, pet, theme) FROM stdin;
-8a1d8547-19c2-445e-9907-f25a3e2ae702	b9110cbb-f73a-4599-81f4-4972beb70df4	{}	{}	pink	2026-03-23 17:00:59.414856	2026-03-23 17:00:59.414856	\N	\N	\N	\N	🌺	pink
+COPY public.user_display_settings (id, user_id, equipped_stickers, equipped_achievements, theme_color, created_at, updated_at, equipped_achievement_id, equipped_sticker_id, equipped_sticker1_id, equipped_sticker2_id, pet, theme, avatar_id) FROM stdin;
+8a1d8547-19c2-445e-9907-f25a3e2ae702	b9110cbb-f73a-4599-81f4-4972beb70df4	{}	{}	pink	2026-03-23 17:00:59.414856	2026-03-23 18:26:33.721095	\N	\N	\N	\N	rapunzel.jpg	pink	\N
 \.
 
 
@@ -749,6 +785,14 @@ ALTER TABLE ONLY public.achievement_definitions
 
 ALTER TABLE ONLY public.achievement_definitions
     ADD CONSTRAINT achievement_definitions_type_key UNIQUE (type);
+
+
+--
+-- Name: avatars avatars_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.avatars
+    ADD CONSTRAINT avatars_pkey PRIMARY KEY (id);
 
 
 --
@@ -1251,5 +1295,5 @@ ALTER TABLE ONLY public.weekly_reports
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 9pzTaiGfFwby4K6MVjoO6cPgyO1YZ04RtlLcxm1HjIb1bu7e4SXsFf1ZUvYIMkR
+\unrestrict CC0lIUBdAZ3IL9ahvUx39Ou0hdGHpKeSaA5CkfblDPDjFrDjJxLRboteQmZmh94
 
