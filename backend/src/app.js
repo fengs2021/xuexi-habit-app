@@ -27,13 +27,26 @@ import wheelRoutes from './routes/wheel.js'
 import avatarRoutes from './routes/avatars.js'
 
 // 加载环境变量
-dotenv.config()
+// 优先从项目根目录的 .env 加载，否则尝试当前目录
+try {
+  dotenv.config({ path: process.cwd() + '/../.env' })
+} catch (e) {
+  dotenv.config()
+}
 
 const app = new Koa()
 const PORT = process.env.PORT || 8080
 
 // 中间件
-app.use(cors({origin: process.env.ALLOWED_ORIGIN || '*', credentials: true}))
+// CORS 配置：生产环境必须指定具体域名
+const corsOrigin = process.env.ALLOWED_ORIGIN || ''
+if (!corsOrigin && process.env.NODE_ENV === 'production') {
+  console.warn('【警告】生产环境未设置 ALLOWED_ORIGIN，默认拒绝所有跨域请求')
+}
+app.use(cors({
+  origin: corsOrigin || false,  // 空字符串或未设置时拒绝
+  credentials: true
+}))
 app.use(bodyParser())
 
 // 路由
@@ -74,7 +87,7 @@ app.use(async (ctx, next) => {
   try {
     await next()
   } catch (err) {
-    console.error('Server error:', err)
+    console.error('【请求错误】:', err.message, err.stack)
     ctx.status = err.status || 500
     ctx.body = {
       code: 500,
@@ -84,7 +97,49 @@ app.use(async (ctx, next) => {
   }
 })
 
-// 启动服务器
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('Server running on port ' + PORT)
+// ========== 全局异常处理 - 防止进程崩溃 ==========
+
+// 未捕获的异常
+process.on('uncaughtException', (err) => {
+  console.error('【严重错误-未捕获异常】:', err.message, err.stack)
+  // 不立即退出，等待日志写入
+  setTimeout(() => {
+    console.log('【注意】进程因未捕获异常即将退出')
+    process.exit(1)
+  }, 1000)
+})
+
+// 未处理的 Promise 拒绝
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('【警告-未处理的Promise拒绝】:', reason)
+})
+
+// 优雅关闭
+async function gracefulShutdown(signal) {
+  console.log(`【关闭】收到 ${signal}，开始优雅关闭...`)
+  
+  // 停止接收新请求
+  server.close(() => {
+    console.log('【关闭】HTTP 服务器已关闭')
+  })
+  
+  // 关闭数据库连接池
+  try {
+    const pool = (await import('./config/database.js')).default
+    await pool.end()
+    console.log('【关闭】数据库连接池已关闭')
+  } catch (e) {
+    console.error('【关闭】关闭数据库连接池失败:', e.message)
+  }
+  
+  process.exit(0)
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+
+// ========== 启动服务器 ==========
+
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`)
 })

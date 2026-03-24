@@ -1,7 +1,15 @@
 import Router from '@koa/router'
+import crypto from 'crypto'
 import pool from '../config/database.js'
 import { success, error } from '../utils/response.js'
 import { addPoints, PointType } from '../services/points.js'
+
+// 安全随机数生成
+function secureRandom(max) {
+  const bytes = crypto.randomBytes(4)
+  const num = bytes.readUInt32BE(0)
+  return (num % max)
+}
 
 const router = new Router({ prefix: '/api/wheel' })
 
@@ -68,9 +76,9 @@ router.post('/spin/:userId', async (ctx) => {
     const prizes = await client.query('SELECT * FROM spin_wheel_prizes')
     const prizeList = prizes.rows
     
-    // 计算中奖结果（加权随机）
+    // 计算中奖结果（加权随机，使用安全随机数）
     const totalWeight = prizeList.reduce((sum, p) => sum + p.weight, 0)
-    let random = Math.random() * totalWeight
+    let random = secureRandom(totalWeight)
     let selectedPrize = prizeList[prizeList.length - 1]
     let cumulative = 0
     

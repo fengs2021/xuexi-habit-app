@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { loginParent, registerChild, getUserInfo } from '@/api/auth'
-import { setToken, removeToken } from '@/utils/auth'
+import { setToken, setRefreshToken, removeToken } from '@/utils/auth'
 import { ROLES } from '@/utils/permission'
 import { getDisplaySettings, updateDisplaySettings } from '@/api/display'
 import { useTheme } from '@/composables/useTheme'
@@ -30,6 +30,9 @@ export const useUserStore = defineStore('user', {
       const res = await loginParent(data)
       this.token = res.token
       setToken(res.token)
+      if (res.refreshToken) {
+        setRefreshToken(res.refreshToken)
+      }
       // Refresh userInfo to get calculated stars
       await this.getUserInfoAction()
       this.roles = [this.userInfo?.role]
@@ -39,6 +42,9 @@ export const useUserStore = defineStore('user', {
       const res = await registerChild(data)
       this.token = res.token
       setToken(res.token)
+      if (res.refreshToken) {
+        setRefreshToken(res.refreshToken)
+      }
       // Refresh userInfo to get calculated stars
       await this.getUserInfoAction()
       this.roles = [this.userInfo?.role]

@@ -98,7 +98,14 @@ async function doSpin() {
   spinning.value = true
   result.value = null
   
-  const prizeIndex = Math.floor(Math.random() * prizes.value.length)
+  // 使用 Web Crypto API 生成安全随机数
+  const getSecureRandom = (max) => {
+    const array = new Uint32Array(1)
+    crypto.getRandomValues(array)
+    return array[0] % max
+  }
+  
+  const prizeIndex = getSecureRandom(prizes.value.length)
   const anglePerPrize = 360 / prizes.value.length
   const extraSpins = 6 * 360
   const targetAngle = extraSpins + (prizeIndex * anglePerPrize) + (anglePerPrize / 2)

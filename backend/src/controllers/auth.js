@@ -18,6 +18,30 @@ import { success, error, ErrorCodes } from '../utils/response.js'
 import jwt from 'jsonwebtoken'
 import JWT_SECRET from '../utils/jwt.js'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
+
+// 安全随机数生成（使用 crypto）
+function secureRandom(max) {
+  const bytes = crypto.randomBytes(4)
+  const num = bytes.readUInt32BE(0)
+  return (num % max)
+}
+
+// 生成安全随机设备ID
+function generateSecureDeviceId() {
+  return 'device_' + crypto.randomUUID().replace(/-/g, '').substring(0, 16)
+}
+
+// 生成安全随机家庭码
+function generateSecureFamilyCode() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let code = ''
+  const bytes = crypto.randomBytes(6)
+  for (let i = 0; i < 6; i++) {
+    code += chars[bytes[i] % chars.length]
+  }
+  return code
+}
 
 const SALT_ROUNDS = 10
 const ACCESS_TOKEN_EXPIRY = '30d'
@@ -59,7 +83,7 @@ export async function registerParent(ctx) {
       }
       family = familyResult.rows[0]
     } else {
-      const familyCode = Math.random().toString(36).substr(2, 6).toUpperCase()
+      const familyCode = generateSecureFamilyCode()
       const familyResult = await pool.query(
         'INSERT INTO family (name, code) VALUES ($1, $2) RETURNING *',
         [familyName || '我的家庭', familyCode]
@@ -106,7 +130,7 @@ export async function registerChild(ctx) {
       return
     }
     const family = familyResult.rows[0]
-    const deviceId = 'device_' + Math.random().toString(36).substr(2, 12)
+    const deviceId = generateSecureDeviceId()
     const userResult = await pool.query(
       `INSERT INTO users (family_id, openid, nickname, role, level, stars) 
        VALUES ($1, $2, $3, 'child', 1, 0) RETURNING *`,

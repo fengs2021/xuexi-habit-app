@@ -96,7 +96,7 @@ import { useUserStore } from '@/store/modules/user'
 import { registerParent } from '@/api/auth'
 import axios from 'axios'
 import { showToast, showConfirmDialog } from 'vant'
-import { setToken } from '@/utils/auth'
+import { setToken, setRefreshToken } from '@/utils/auth'
 
 const { VITE_APP_TITLE } = import.meta.env
 const router = useRouter()
@@ -152,6 +152,9 @@ const doChildLogin = async () => {
       userStore.userInfo = data.data.user
       userStore.roles = [data.data.user.role]
       setToken(data.data.token)
+      if (data.data.refreshToken) {
+        setRefreshToken(data.data.refreshToken)
+      }
       showToast('登录成功')
       router.push('/dashboard')
     } else {

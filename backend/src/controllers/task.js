@@ -96,10 +96,28 @@ export async function createTask(ctx) {
   
   const { title, starReward, frequency } = ctx.request.body
   
+  // 输入验证
+  if (!title || typeof title !== 'string' || title.trim().length === 0) {
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '任务名称不能为空')
+    return
+  }
+  if (title.length > 100) {
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '任务名称不能超过100字符')
+    return
+  }
+  if (starReward !== undefined && (typeof starReward !== 'number' || starReward < 0 || starReward > 999)) {
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '星星奖励必须在0-999之间')
+    return
+  }
+  if (frequency && !['daily', 'weekly', 'once'].includes(frequency)) {
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '频率必须是 daily/weekly/once')
+    return
+  }
+  
   try {
     const result = await pool.query(
       'INSERT INTO tasks (family_id, title, star_reward, frequency) VALUES ($1, $2, $3, $4) RETURNING *',
-      [user.family_id, title, starReward || 1, frequency || 'daily']
+      [user.family_id, title.trim(), starReward || 1, frequency || 'daily']
     )
     ctx.body = success(result.rows[0])
   } catch (err) {
@@ -369,8 +387,17 @@ export async function deductStars(ctx) {
   
   const { studentId, stars, reason } = ctx.request.body
   
-  if (!studentId || !stars) {
-    ctx.body = error(400, '参数不完整')
+  // 输入验证
+  if (!studentId || typeof studentId !== 'string') {
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '学生ID无效')
+    return
+  }
+  if (!stars || isNaN(parseInt(stars)) || parseInt(stars) <= 0) {
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '扣减星星数量必须为正整数')
+    return
+  }
+  if (reason && reason.length > 200) {
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '原因不能超过200字符')
     return
   }
   
