@@ -39,7 +39,7 @@ export async function getPendingApprovals(ctx) {
        FROM task_logs tl
        JOIN tasks t ON tl.task_id = t.id
        JOIN users u ON tl.user_id = u.id
-       WHERE t.family_id = $1 AND tl.action = 'completed' AND tl.approval_status = 'pending'
+       WHERE t.family_id = $1 AND tl.action = 'complete' AND tl.approval_status = 'pending'
        ORDER BY tl.created_at DESC`,
       [user.family_id]
     )
@@ -79,7 +79,7 @@ export async function getApprovalHistory(ctx) {
        FROM task_logs tl
        JOIN tasks t ON tl.task_id = t.id
        JOIN users u ON tl.user_id = u.id
-       WHERE t.family_id = $1 AND tl.action = 'completed' AND tl.approval_status != 'pending'
+       WHERE t.family_id = $1 AND tl.action = 'complete' AND tl.approval_status != 'pending'
        ORDER BY tl.created_at DESC LIMIT 50`,
       [user.family_id]
     )
