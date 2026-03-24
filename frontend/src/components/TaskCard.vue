@@ -93,7 +93,7 @@ const complete = async () => {
   loading.value = true
   try {
     showCelebration.value = true
-    await emit('complete', props.task.id)
+    await emit('complete', props.task)
   } finally {
     loading.value = false
   }

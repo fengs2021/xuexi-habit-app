@@ -86,6 +86,10 @@ router.post('/spin/:userId', async (ctx) => {
         'UPDATE users SET stars = stars + $1 WHERE id = $2',
         [selectedPrize.prize_value, userId]
       )
+      await client.query(
+        'INSERT INTO user_point_summary (user_id, total_earned) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
+        [userId, selectedPrize.prize_value]
+      )
       rewardInfo = { type: 'stars', value: selectedPrize.prize_value }
     } else if (selectedPrize.prize_type.startsWith('sticker_')) {
       const rarity = selectedPrize.prize_type.replace('sticker_', '').toUpperCase()

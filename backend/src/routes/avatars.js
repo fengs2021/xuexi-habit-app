@@ -11,11 +11,10 @@ router.get('/', async (ctx) => {
       'SELECT id, name, filename, category, is_active FROM avatars WHERE is_active = true ORDER BY category, name'
     );
     
-    // 使用环境变量或请求的host作为基础URL
-    const baseUrl = process.env.AVATARS_BASE_URL || `http://${ctx.host}`;
+    // 使用相对路径，让浏览器自动使用当前页面的域名
     const avatars = result.rows.map(row => ({
       ...row,
-      url: `${baseUrl}/avatars/${row.filename}`
+      url: `/avatars/${row.filename}`
     }));
     
     ctx.body = success(avatars);

@@ -77,6 +77,10 @@ router.post('/care', async (ctx) => {
   
   // 扣除星星
   await pool.query('UPDATE users SET stars = stars - $1 WHERE id = $2', [act.cost, userId])
+  await pool.query(
+    'INSERT INTO user_point_summary (user_id, total_used) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_used = user_point_summary.total_used + $2, updated_at = NOW()',
+    [userId, act.cost]
+  )
   
   // 更新宠物状态
   const newHunger = Math.max(0, Math.min(100, pet.hunger + act.hunger))

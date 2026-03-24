@@ -20,8 +20,8 @@ import JWT_SECRET from '../utils/jwt.js'
 import bcrypt from 'bcryptjs'
 
 const SALT_ROUNDS = 10
-const ACCESS_TOKEN_EXPIRY = '2h'
-const REFRESH_TOKEN_EXPIRY = '7d'
+const ACCESS_TOKEN_EXPIRY = '30d'
+const REFRESH_TOKEN_EXPIRY = '30d'
 
 function generateTokens(user) {
   const accessToken = jwt.sign(

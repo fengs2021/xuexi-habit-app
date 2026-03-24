@@ -134,10 +134,15 @@ export async function approveTaskCompletion(ctx) {
     if (approved) {
       await pool.query('UPDATE users SET stars = stars + $1 WHERE id = $2',
         [log.star_reward, log.user_id])
+      await pool.query(
+        'INSERT INTO user_point_summary (user_id, total_earned) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
+        [log.user_id, log.star_reward]
+      )
     }
     
     ctx.body = success({ approved, starsAdded: approved ? log.star_reward : 0 })
   } catch (err) {
+    console.error('ApproveTaskLog error:', err)
     ctx.body = error(500, '审批失败')
   }
 }
@@ -175,10 +180,18 @@ export async function approveExchange(ctx) {
       // 审批通过，扣除学生积分
       await pool.query('UPDATE users SET stars = stars - $1 WHERE id = $2',
         [exchange.stars_spent, exchange.user_id])
+      await pool.query(
+        'INSERT INTO user_point_summary (user_id, total_used) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_used = user_point_summary.total_used + $2, updated_at = NOW()',
+        [exchange.user_id, exchange.stars_spent]
+      )
     } else {
-      // 审批拒绝，返还学生积分
+      // 审批拒绝，返还学生积分（增加累计）
       await pool.query('UPDATE users SET stars = stars + $1 WHERE id = $2',
         [exchange.stars_spent, exchange.user_id])
+      await pool.query(
+        'INSERT INTO user_point_summary (user_id, total_earned) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
+        [exchange.user_id, exchange.stars_spent]
+      )
     }
     
     ctx.body = success({ approved, message: approved ? '已批准' : '已拒绝' })
@@ -203,7 +216,12 @@ export async function reverseApproval(ctx) {
       }
       const log = logResult.rows[0]
       if (log.approval_status === 'approved') {
+        // 撤销已批准的任务，扣回星星（减少累计）
         await pool.query('UPDATE users SET stars = stars - $1 WHERE id = $2', [log.stars_earned, log.user_id])
+        await pool.query(
+          'INSERT INTO user_point_summary (user_id, total_used) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_used = user_point_summary.total_used + $2, updated_at = NOW()',
+          [log.user_id, log.stars_earned]
+        )
       }
       await pool.query('DELETE FROM task_logs WHERE id = $1', [id])
     } else if (type === 'exchange') {
@@ -214,7 +232,12 @@ export async function reverseApproval(ctx) {
       }
       const exchange = exchangeResult.rows[0]
       if (exchange.status === 'approved') {
+        // 撤销已批准的兑换，退回星星（增加累计）
         await pool.query('UPDATE users SET stars = stars + $1 WHERE id = $2', [exchange.stars_spent, exchange.user_id])
+        await pool.query(
+          'INSERT INTO user_point_summary (user_id, total_earned) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET total_earned = user_point_summary.total_earned + $2, updated_at = NOW()',
+          [exchange.user_id, exchange.stars_spent]
+        )
       }
       await pool.query('DELETE FROM exchange_logs WHERE id = $1', [id])
     }
