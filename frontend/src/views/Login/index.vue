@@ -135,19 +135,15 @@ const selectChild = (child) => {
 }
 
 const doChildLogin = async () => {
-  console.log('doChildLogin called, currentChildId:', currentChildId.value)
   if (!currentChildId.value) {
     showToast('请选择学生')
     return
   }
   loading.value = true
   try {
-    console.log('Sending login request with userId:', currentChildId.value)
     const res = await axios.post('/api/auth/login/device', { userId: currentChildId.value })
-    console.log('Login response:', res.data)
     const data = res.data
     if (data.code === 0) {
-      console.log('Login success, token:', data.data.token)
       userStore.token = data.data.token
       userStore.userInfo = data.data.user
       userStore.roles = [data.data.user.role]
@@ -158,7 +154,6 @@ const doChildLogin = async () => {
       showToast('登录成功')
       router.push('/dashboard')
     } else {
-      console.log('Login failed:', data.message)
       showToast(data.message || '登录失败')
     }
   } catch (error) {
@@ -170,7 +165,6 @@ const doChildLogin = async () => {
 }
 
 const handleParentLogin = async () => {
-  console.log('handleParentLogin called, form:', parentForm)
   loading.value = true
   try {
     await userStore.loginParentAction(parentForm)
@@ -180,7 +174,6 @@ const handleParentLogin = async () => {
     showToast(error.message || '登录失败')
   } finally {
     loading.value = false
-    console.log('handleParentLogin finally')
   }
 }
 

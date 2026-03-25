@@ -74,9 +74,7 @@ async function checkTodaySpin() {
   if (!props.userId) return
   try {
     const res = await axios.get('/wheel/today/' + props.userId + '?t=' + Date.now())
-    console.log('Spin check response:', res)
     hasSpunToday.value = res.spun || false
-    console.log('hasSpunToday set to:', hasSpunToday.value)
   } catch (e) {
     console.error('Check today spin error:', e)
   }

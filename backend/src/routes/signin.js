@@ -1,6 +1,6 @@
 import Router from 'koa-router'
 import pool from '../config/database.js'
-import { success } from '../utils/response.js'
+import { success, error, ErrorCodes } from '../utils/response.js'
 import { addPoints, PointType, getPointsInfo } from '../services/points.js'
 
 const router = new Router({ prefix: '/api/signin' })
@@ -91,8 +91,7 @@ router.post('/checkin', async (ctx) => {
   const { userId } = ctx.request.body
   
   if (!userId) {
-    ctx.status = 400
-    ctx.body = { code: 400, message: '缺少userId' }
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '缺少userId')
     return
   }
   
@@ -158,8 +157,7 @@ router.post('/checkin', async (ctx) => {
   } catch (err) {
     await client.query('ROLLBACK')
     console.error('Signin error:', err)
-    ctx.status = 500
-    ctx.body = { code: 500, message: '签到失败' }
+    ctx.body = error(500, '签到失败')
   } finally {
     client.release()
   }
@@ -177,7 +175,7 @@ router.get('/history/:userId', async (ctx) => {
     )
     ctx.body = success(result.rows)
   } catch (err) {
-    ctx.body = { code: 500, message: '获取历史失败' }
+    ctx.body = error(500, '获取历史失败')
   }
 })
 
@@ -211,7 +209,7 @@ router.get('/stats/:userId', async (ctx) => {
       currentBalance: pointsInfo.success ? pointsInfo.balance : 0
     })
   } catch (err) {
-    ctx.body = { code: 500, message: '获取统计失败' }
+    ctx.body = error(500, '获取统计失败')
   }
 })
 

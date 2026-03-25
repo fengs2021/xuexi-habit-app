@@ -1,6 +1,6 @@
 import Router from '@koa/router'
 import pool from '../config/database.js'
-import { success } from '../utils/response.js'
+import { success, error } from '../utils/response.js'
 
 const router = new Router({ prefix: '/api/display' })
 
@@ -13,7 +13,7 @@ router.get('/settings/:userId', async (ctx) => {
     )
     ctx.body = success(result.rows[0] || null)
   } catch (err) {
-    ctx.body = { code: 500, message: err.message }
+    ctx.body = error(500, err.message)
   }
 })
 
@@ -36,7 +36,7 @@ router.put('/settings', async (ctx) => {
     ctx.body = success({ success: true })
   } catch (err) {
     console.error('PUT settings error:', err)
-    ctx.body = { code: 500, message: err.message }
+    ctx.body = error(500, err.message)
   }
 })
 

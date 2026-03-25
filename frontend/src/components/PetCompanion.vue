@@ -104,7 +104,7 @@ const getPetImage = (pet) => {
     const found = imagePets.value.find(p => p.filename === pet)
     if (found && found.url) return found.url
     // 否则拼接URL（使用公网IP）
-    return `http://111.229.221.200:8080/avatars/${pet}`
+    return `${import.meta.env.VITE_API_BASE_URL}/avatars/${pet}`
   }
   return ''
 }

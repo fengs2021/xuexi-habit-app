@@ -149,12 +149,9 @@ const loadTasks = async () => {
 const loadChildrenProgress = async () => {
   try {
     const data = await getChildrenTaskProgress()
-    console.log('【调试】原始 API 返回 data:', data)
-    console.log('【调试】childrenProgress 数据:', JSON.stringify(data, null, 2))
     childrenProgress.value = data || []
-    console.log('【调试】childrenProgress.value:', JSON.stringify(childrenProgress.value, null, 2))
   } catch (error) {
-    console.error('【调试】加载家庭成员进度失败', error)
+    console.error('加载家庭成员进度失败', error)
   }
 }
 
@@ -188,7 +185,7 @@ const handleClearTarget = async () => {
 const getAvatarUrl = (filename) => {
   if (!filename) return ''
   if (filename.startsWith('http')) return filename
-  return `http://111.229.221.200:8080/avatars/${filename}`
+  return `${import.meta.env.VITE_API_BASE_URL}/avatars/${filename}`
 }
 
 // 判断是否是宠物图片（而不是emoji）
