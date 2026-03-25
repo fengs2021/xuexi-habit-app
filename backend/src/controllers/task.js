@@ -47,6 +47,20 @@ export async function getTasks(ctx) {
     weekStart.setDate(now.getDate() - diff)
     weekStart.setHours(0, 0, 0, 0)
     
+    // 确定要查询的用户ID
+    let queryUserId = user.id
+    
+    // 如果是家长账号(role=admin)，查询该家庭中第一个孩子(child)的完成状态
+    if (user.role === 'admin') {
+      const childResult = await pool.query(
+        "SELECT id FROM users WHERE family_id = $1 AND role = 'child' ORDER BY created_at ASC LIMIT 1",
+        [user.family_id]
+      )
+      if (childResult.rows.length > 0) {
+        queryUserId = childResult.rows[0].id
+      }
+    }
+    
     for (const task of tasks) {
       let completedInCycle = false
       let pendingApproval = false
@@ -60,9 +74,10 @@ export async function getTasks(ctx) {
       
       let checkTime = task.frequency === 'daily' ? cycleStart : weekStart
       
+      // 使用正确的用户ID查询完成状态
       const logResult = await pool.query(
         'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 AND created_at >= $4 ORDER BY created_at DESC LIMIT 1',
-        [user.id, task.id, 'complete', checkTime.toISOString()]
+        [queryUserId, task.id, 'complete', checkTime.toISOString()]
       )
       if (logResult.rows.length > 0) {
         const approvalStatus = logResult.rows[0].approval_status
