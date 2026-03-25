@@ -26,9 +26,13 @@ router.get('/children-task-progress', async (ctx) => {
     const token = authHeader.replace('Bearer ', '')
     const decoded = jwt.verify(token, JWT_SECRET)
     
-    // 获取所有孩子
+    // 获取所有孩子及其头像/宠物设置
     const childrenResult = await pool.query(
-      "SELECT id, nickname, avatar, role, level, stars FROM users WHERE family_id = $1 AND role = 'child'",
+      `SELECT u.id, u.nickname, u.avatar, u.role, u.level, u.stars,
+              ds.pet, ds.avatar_id
+       FROM users u
+       LEFT JOIN user_display_settings ds ON u.id = ds.user_id
+       WHERE u.family_id = $1 AND u.role = 'child'`,
       [decoded.familyId]
     )
     

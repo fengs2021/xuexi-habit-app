@@ -14,7 +14,9 @@
         <van-cell v-for="child in childrenProgress" :key="child.id">
           <template #title>
             <div class="child-info">
-              <span class="child-avatar">{{ child.avatar || '👶' }}</span>
+              <img v-if="child.avatar_id" :src="getAvatarUrl(child.avatar_id)" class="child-avatar" />
+              <span v-else-if="child.pet" class="child-avatar">{{ child.pet }}</span>
+              <span v-else class="child-avatar">👶</span>
               <span class="child-name">{{ child.nickname }}</span>
               <span class="child-stars">💰 {{ child.stars }} ★</span>
             </div>
@@ -176,6 +178,13 @@ const handleClearTarget = async () => {
   userStore.targetReward = null
   localStorage.removeItem('targetReward')
   showToast('已取消目标')
+}
+
+// 获取头像URL
+const getAvatarUrl = (filename) => {
+  if (!filename) return ''
+  if (filename.startsWith('http')) return filename
+  return `http://111.229.221.200:8080/avatars/${filename}`
 }
 
 onMounted(async () => {
