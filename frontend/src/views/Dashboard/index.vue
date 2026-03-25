@@ -246,6 +246,11 @@ onMounted(async () => {
 }
 .child-avatar {
   font-size: 24px;
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 50%;
+  vertical-align: middle;
 }
 .child-name {
   font-weight: bold;
