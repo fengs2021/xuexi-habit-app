@@ -1,6 +1,52 @@
 import pool from '../config/database.js'
 import { addPoints, PointType } from '../services/points.js'
 
+// 获取当前周的标识符 (如 2026-W13)
+function getCurrentWeekIdentifier() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const startOfYear = new Date(year, 0, 1)
+  const days = Math.floor((now - startOfYear) / (24 * 60 * 60 * 1000))
+  const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7)
+  return `${year}-W${String(weekNumber).padStart(2, '0')}`
+}
+
+// 获取本周奖池的贴纸
+async function getWeeklyPoolStickers() {
+  const currentWeek = getCurrentWeekIdentifier()
+  
+  // 查询本周限定贴纸
+  const limitedResult = await pool.query(
+    `SELECT id, rarity FROM stickers 
+     WHERE (pool_type = 'limited' AND week_identifier = $1 AND is_active = true)
+     OR pool_type = 'both'`,
+    [currentWeek]
+  )
+  
+  // 如果有限定贴纸，使用通用+限定混合池
+  if (limitedResult.rows.length > 0) {
+    const limitedIds = limitedResult.rows.map(r => r.id)
+    const generalResult = await pool.query(
+      `SELECT id, rarity FROM stickers 
+       WHERE pool_type = 'general' AND is_active = true
+       UNION ALL
+       SELECT id, rarity FROM stickers 
+       WHERE pool_type = 'both' AND is_active = true`,
+      []
+    )
+    const allStickers = [...limitedResult.rows, ...generalResult.rows]
+    return allStickers
+  }
+  
+  // 否则只用通用池
+  const result = await pool.query(
+    `SELECT id, rarity FROM stickers 
+     WHERE pool_type = 'general' AND is_active = true`,
+    []
+  )
+  return result.rows
+}
+
 export async function awardRandomSticker(userId, taskType) {
   try {
     let probabilities = { N: 0.7, R: 0.2, SR: 0.08, SSR: 0.02 }
@@ -10,6 +56,22 @@ export async function awardRandomSticker(userId, taskType) {
     probabilities = { N: 0.3, R: 0.3, SR: 0.25, SSR: 0.15 }
   }
   
+  // 获取本周奖池
+  const poolStickers = await getWeeklyPoolStickers()
+  
+  if (poolStickers.length === 0) {
+    return { awarded: false, reason: 'no_stickers_in_pool' }
+  }
+  
+  // 按稀有度分组
+  const stickersByRarity = { N: [], R: [], SR: [], SSR: [] }
+  for (const sticker of poolStickers) {
+    if (stickersByRarity[sticker.rarity]) {
+      stickersByRarity[sticker.rarity].push(sticker)
+    }
+  }
+  
+  // 根据概率选择稀有度
   const rand = Math.random()
   let cumulative = 0
   let selectedRarity = 'N'
@@ -21,30 +83,55 @@ export async function awardRandomSticker(userId, taskType) {
     }
   }
   
-  const stickerResult = await pool.query(
-    'SELECT id FROM stickers WHERE rarity = $1 ORDER BY RANDOM() LIMIT 1',
-    [selectedRarity]
-  )
-  
-  if (stickerResult.rows.length > 0) {
-    const stickerId = stickerResult.rows[0].id
-    const existing = await pool.query(
-      'SELECT id FROM user_stickers WHERE user_id = $1 AND sticker_id = $2',
-      [userId, stickerId]
-    )
-    if (existing.rows.length === 0) {
-      await pool.query(
-        'INSERT INTO user_stickers (user_id, sticker_id) VALUES ($1, $2)',
-        [userId, stickerId]
-      )
-      return { awarded: true, stickerId, rarity: selectedRarity }
+  // 从对应稀有度中随机选择
+  const availableStickers = stickersByRarity[selectedRarity]
+  if (availableStickers.length === 0) {
+    // 如果没有该稀有度，向下兼容
+    for (const rarity of ['SR', 'R', 'N']) {
+      if (stickersByRarity[rarity].length > 0) {
+        selectedRarity = rarity
+        availableStickers = stickersByRarity[rarity]
+        break
+      }
     }
   }
-  return { awarded: false }
+  
+  if (availableStickers.length === 0) {
+    return { awarded: false, reason: 'no_stickers_available' }
+  }
+  
+  const selectedSticker = availableStickers[Math.floor(Math.random() * availableStickers.length)]
+  
+  // 检查用户是否已有该贴纸
+  const existing = await pool.query(
+    'SELECT id FROM user_stickers WHERE user_id = $1 AND sticker_id = $2',
+    [userId, selectedSticker.id]
+  )
+  if (existing.rows.length === 0) {
+    await pool.query(
+      'INSERT INTO user_stickers (user_id, sticker_id) VALUES ($1, $2)',
+      [userId, selectedSticker.id]
+    )
+    return { awarded: true, stickerId: selectedSticker.id, rarity: selectedRarity }
+  }
+  return { awarded: false, reason: 'already_owned' }
   } catch (error) {
     console.error('awardRandomSticker error:', error)
     return { awarded: false, error: error.message }
   }
+}
+
+// 获取本周限定贴纸信息
+export async function getWeeklyLimitedStickers() {
+  const currentWeek = getCurrentWeekIdentifier()
+  const result = await pool.query(
+    `SELECT id, name, emoji, rarity, description, week_identifier 
+     FROM stickers 
+     WHERE pool_type = 'limited' AND week_identifier = $1 AND is_active = true
+     ORDER BY rarity DESC`,
+    [currentWeek]
+  )
+  return result.rows
 }
 
 export async function checkAndAwardAchievements(userId) {
