@@ -15,6 +15,7 @@
           <template #title>
             <div class="child-info">
               <img v-if="child.avatar_filename" :src="getAvatarUrl(child.avatar_filename)" class="child-avatar" />
+              <img v-else-if="isPetImage(child.pet)" :src="getAvatarUrl(child.pet)" class="child-avatar" />
               <span v-else-if="child.pet" class="child-avatar">{{ child.pet }}</span>
               <span v-else class="child-avatar">👶</span>
               <span class="child-name">{{ child.nickname }}</span>
@@ -188,6 +189,11 @@ const getAvatarUrl = (filename) => {
   if (!filename) return ''
   if (filename.startsWith('http')) return filename
   return `http://111.229.221.200:8080/avatars/${filename}`
+}
+
+// 判断是否是宠物图片（而不是emoji）
+const isPetImage = (pet) => {
+  return pet && (pet.endsWith('.jpg') || pet.endsWith('.png') || pet.includes('/avatars/'))
 }
 
 onMounted(async () => {
