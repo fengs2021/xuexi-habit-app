@@ -144,6 +144,14 @@ router.get("/new-rewards/:childId", async (ctx) => {
   }
 })
 
+// 工具函数：获取本地日期字符串 YYYY-MM-DD
+function getLocalDateStr(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // 获取本周统计数据（供Dashboard使用）
 router.get("/week-summary/:childId", async (ctx) => {
   const { childId } = ctx.params
@@ -153,8 +161,9 @@ router.get("/week-summary/:childId", async (ctx) => {
     const dayOfWeek = now.getDay() || 7
     const weekStart = new Date(now)
     weekStart.setDate(now.getDate() - dayOfWeek + 1)
-    const weekStartStr = weekStart.toISOString().split('T')[0]
-    const todayStr = now.toISOString().split('T')[0]
+    // 使用本地日期而非 toISOString()（避免 UTC 时区偏移问题）
+    const weekStartStr = getLocalDateStr(weekStart)
+    const todayStr = getLocalDateStr(now)
     
     // 本周任务统计
     const weekStatsRes = await pool.query(`

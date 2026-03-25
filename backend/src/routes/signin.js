@@ -5,6 +5,14 @@ import { addPoints, PointType, getPointsInfo } from '../services/points.js'
 
 const router = new Router({ prefix: '/api/signin' })
 
+// 工具函数：获取本地日期字符串 YYYY-MM-DD
+function getLocalDateStr(date = new Date()) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // 签到奖励规则：1,1,2,2,2,3,5（七天循环）
 const SIGNIN_REWARDS = [1, 1, 2, 2, 2, 3, 5]
 
@@ -22,7 +30,7 @@ router.get('/info/:userId', async (ctx) => {
     // 获取积分信息
     const pointsInfo = await getPointsInfo(userId)
     
-    const today = new Date().toISOString().split('T')[0]
+    const today = getLocalDateStr()
     let checkedIn = false
     let streakDays = 0
     let todayBonus = 0
@@ -30,7 +38,7 @@ router.get('/info/:userId', async (ctx) => {
     
     if (lastSignResult.rows.length > 0) {
       const lastSign = lastSignResult.rows[0]
-      const lastSignDate = new Date(lastSign.sign_date).toISOString().split('T')[0]
+      const lastSignDate = getLocalDateStr(new Date(lastSign.sign_date))
       streakDays = lastSign.streak_days || 0
       
       // 检查今天是否已签到
@@ -42,7 +50,7 @@ router.get('/info/:userId', async (ctx) => {
         // 计算是否连续
         const yesterday = new Date()
         yesterday.setDate(yesterday.getDate() - 1)
-        const yesterdayStr = yesterday.toISOString().split('T')[0]
+        const yesterdayStr = getLocalDateStr(yesterday)
         
         if (lastSignDate !== yesterdayStr) {
           // 中断了，重置连续天数
@@ -99,8 +107,8 @@ router.post('/checkin', async (ctx) => {
   try {
     await client.query('BEGIN')
     
-    const today = new Date().toISOString().split('T')[0]
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    const today = getLocalDateStr()
+    const yesterday = getLocalDateStr(new Date(Date.now() - 86400000))
     
     // 检查今天是否已签到
     const existing = await client.query(
@@ -124,7 +132,7 @@ router.post('/checkin', async (ctx) => {
     let newStreak = 1
     if (lastSignResult.rows.length > 0) {
       const lastSign = lastSignResult.rows[0]
-      const lastSignDate = new Date(lastSign.sign_date).toISOString().split('T')[0]
+      const lastSignDate = getLocalDateStr(new Date(lastSign.sign_date))
       
       if (lastSignDate === yesterday) {
         newStreak = (lastSign.streak_days || 0) + 1
@@ -186,7 +194,7 @@ router.get('/stats/:userId', async (ctx) => {
   try {
     // 获取本月签到天数
     const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+    const monthStart = getLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1))
     const monthResult = await pool.query(
       'SELECT COUNT(*) as days FROM user_signins WHERE user_id = $1 AND sign_date >= $2',
       [userId, monthStart]
