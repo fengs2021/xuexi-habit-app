@@ -250,7 +250,7 @@ const lastWeekReport = ref(null)
 const taskItems = ref([])
 const tasksLoading = ref(false)
 const tasksOffset = ref(0)
-const tasksLimit = 7
+const tasksLimit = 100
 const hasMoreTasks = ref(true)
 const totalTasksDays = ref(0)
 

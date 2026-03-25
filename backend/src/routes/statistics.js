@@ -65,7 +65,7 @@ router.get("/daily-stars/:childId", async (ctx) => {
 // 获取每日任务完成详情（分页）
 router.get("/daily-tasks/:childId", async (ctx) => {
   const { childId } = ctx.params
-  const { offset = 0, limit = 7 } = ctx.query
+  const { offset = 0, limit = 100 } = ctx.query
   
   try {
     const res = await pool.query(`
