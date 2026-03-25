@@ -28,6 +28,17 @@
   - max: 20 连接
   - idleTimeoutMillis: 30s
   - connectionTimeoutMillis: 5s
+  - 每60秒健康检查
+
+- **全局异常处理**
+  - uncaughtException 捕获
+  - unhandledRejection 捕获
+  - 优雅关闭 (SIGTERM/SIGINT)
+
+- **进程守护**
+  - PM2 配置 ecosystem.config.js
+  - 崩溃自动重启
+  - 开机自启动
 
 ### 🐛 Bug 修复
 
@@ -63,40 +74,17 @@
 - **删除重复兑换审批API**
   - 前端 `api/exchange.js` 已删除
   - 统一使用 `/api/approvals/*` 入口
-  - 每60秒健康检查
 
-- **全局异常处理**
-  - uncaughtException 捕获
-  - unhandledRejection 捕获
-  - 优雅关闭 (SIGTERM/SIGINT)
+### 🔧 代码质量
 
-- **进程守护**
-  - PM2 配置 ecosystem.config.js
-  - 崩溃自动重启
-  - 开机自启动
+- **硬编码 URL**
+  - 改为使用 `VITE_API_BASE_URL` 环境变量
 
-### 🐛 修复
+- **调试日志**
+  - 移除所有 console.log 调试日志
 
-- **任务状态查询**
-  - 家长任务页面查询孩子的完成状态（而非家长自己的）
-  - 任务页面/审批页面使用不同的 API
-  - 新增 `/api/tasks/cycle-status` API
-
-- **转盘刷新时间**
-  - 从 UTC 00:00 改为北京时间 00:00
-
-- **家长审批页面**
-  - 不限时间显示所有 pending 记录
-
-- **家长查看孩子统计页面**
-  - 修复使用家长ID查询而非孩子ID的问题
-  - 统计页面正确使用 URL childId 参数
-
-### 📝 文档
-
-- 更新 API 文档 (v3.4)
-- 更新数据库设计文档 (v3.4)
-- 新增 .env.example 配置模板
+- **后端响应格式**
+  - signin.js、display.js 统一使用 `error()`/`success()` 辅助函数
 
 ---
 
