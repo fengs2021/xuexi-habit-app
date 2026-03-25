@@ -28,6 +28,41 @@
   - max: 20 连接
   - idleTimeoutMillis: 30s
   - connectionTimeoutMillis: 5s
+
+### 🐛 Bug 修复
+
+- **任务状态查询**
+  - 家长任务页面查询孩子的完成状态（而非家长自己的）
+  - 任务页面/审批页面使用不同的 API
+  - 新增 `/api/tasks/cycle-status` API
+
+- **转盘刷新时间**
+  - 从 UTC 00:00 改为北京时间 00:00
+
+- **审批页面**
+  - 不限时间显示所有 pending 记录
+
+- **统计页面**
+  - 修复使用家长ID查询而非孩子ID的问题
+  - 正确使用 URL childId 参数
+
+- **家长首页**
+  - 显示孩子的宠物头像（cartoon头像优先，其次emoji宠物）
+
+- **家庭进度查询**
+  - 修复 action='completed' 改为 'complete'
+  - 修复周完成数使用周一零点
+
+### 🧹 代码清理
+
+- **删除宠物养护死代码**
+  - 删除 `api/pet.js`（未被使用）
+  - 删除 `routes/pet.js`（喂食/洗澡等功能）
+  - 移除 PET_CARE 积分类型
+
+- **删除重复兑换审批API**
+  - 前端 `api/exchange.js` 已删除
+  - 统一使用 `/api/approvals/*` 入口
   - 每60秒健康检查
 
 - **全局异常处理**
