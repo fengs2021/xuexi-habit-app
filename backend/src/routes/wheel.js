@@ -11,6 +11,14 @@ function secureRandom(max) {
   return (num % max)
 }
 
+// 获取北京时间 "YYYY-MM-DD" 格式的日期字符串
+function getBeijingDate() {
+  const now = new Date()
+  // 转换为北京时间 (UTC+8)
+  const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+  return beijingTime.toISOString().split('T')[0]
+}
+
 const router = new Router({ prefix: '/api/wheel' })
 
 // 获取转盘配置
@@ -34,7 +42,7 @@ router.get('/config', async (ctx) => {
 // 检查今日是否已转动
 router.get('/today/:userId', async (ctx) => {
   const { userId } = ctx.params
-  const today = new Date().toISOString().split('T')[0]
+  const today = getBeijingDate()
   
   try {
     const result = await pool.query(
@@ -54,7 +62,7 @@ router.get('/today/:userId', async (ctx) => {
 // 转动转盘
 router.post('/spin/:userId', async (ctx) => {
   const { userId } = ctx.params
-  const today = new Date().toISOString().split('T')[0]
+  const today = getBeijingDate()
   
   const client = await pool.connect()
   try {
