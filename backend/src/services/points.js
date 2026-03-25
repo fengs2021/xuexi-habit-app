@@ -19,6 +19,7 @@ export const PointType = {
   TASK_APPROVE: 'task_approve', // 任务审批通过
   ACHIEVEMENT: 'achievement',   // 成就奖励
   WHEEL: 'wheel',             // 转盘中奖
+  LOTTERY: 'lottery',         // 贴纸抽奖
   REVERSE: 'reverse',         // 撤销返还
   
   // 消耗

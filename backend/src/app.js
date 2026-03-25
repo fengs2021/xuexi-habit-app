@@ -26,6 +26,7 @@ import backupRoutes from './routes/backup.js'
 import streakRoutes from './routes/streak.js'
 import wheelRoutes from './routes/wheel.js'
 import avatarRoutes from './routes/avatars.js'
+import stickerLotteryRoutes from './routes/stickerLottery.js'
 
 // 加载环境变量
 // 优先从项目根目录的 .env 加载，否则尝试当前目录
@@ -78,6 +79,7 @@ app.use(reportRoutes.routes())
 app.use(backupRoutes.routes())
 app.use(streakRoutes.routes())
 app.use(wheelRoutes.routes())
+app.use(stickerLotteryRoutes.routes())
 app.use(avatarRoutes.routes())
 
 // 静态文件服务 (头像)

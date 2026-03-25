@@ -15,3 +15,24 @@ export function createExchange(data) {
 export function getStudentExchanges() {
   return request({ url: '/exchanges/student-history', method: 'GET' })
 }
+
+// 贴纸抽奖API
+export function getWeeklyLimitedStickers() {
+  return request({ url: '/sticker-lottery/weekly-limited', method: 'GET' })
+}
+
+export function getLotteryProgress(userId) {
+  return request({ url: `/sticker-lottery/progress/${userId}`, method: 'GET' })
+}
+
+export function drawSticker(userId) {
+  return request({ url: `/sticker-lottery/draw/${userId}`, method: 'POST' })
+}
+
+export function guaranteeExchange(userId, stickerId) {
+  return request({ url: `/sticker-lottery/guarantee-exchange/${userId}`, method: 'POST', data: { stickerId } })
+}
+
+export function getExchangeOptions(userId) {
+  return request({ url: `/sticker-lottery/exchange-options/${userId}`, method: 'GET' })
+}
