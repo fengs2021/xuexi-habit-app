@@ -33,21 +33,28 @@ router.get('/children-task-progress', async (ctx) => {
     )
     
     const today = new Date().toISOString().split('T')[0]
+    const now = new Date()
     const cycleStart = new Date()
     cycleStart.setHours(0, 0, 0, 0)
+    // 本周一零点
+    const dayOfWeek = now.getDay()
+    const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - daysSinceMonday)
+    weekStart.setHours(0, 0, 0, 0)
     
     const children = []
     for (const child of childrenResult.rows) {
       // 获取今日完成任务数
       const todayTasksResult = await pool.query(
-        "SELECT COUNT(*) as count FROM task_logs WHERE user_id = $1 AND action = 'completed' AND approval_status = 'approved' AND completed_date = $2",
+        "SELECT COUNT(*) as count FROM task_logs WHERE user_id = $1 AND action = 'complete' AND approval_status = 'approved' AND completed_date = $2",
         [child.id, today]
       )
       
-      // 获取本周完成任务数
+      // 获取本周（周一至今）完成任务数
       const weekTasksResult = await pool.query(
-        "SELECT COUNT(*) as count FROM task_logs WHERE user_id = $1 AND action = 'completed' AND approval_status = 'approved' AND completed_date >= $2",
-        [child.id, cycleStart.toISOString().split('T')[0]]
+        "SELECT COUNT(*) as count FROM task_logs WHERE user_id = $1 AND action = 'complete' AND approval_status = 'approved' AND completed_date >= $2",
+        [child.id, weekStart.toISOString().split('T')[0]]
       )
       
       // 获取待审批任务数
