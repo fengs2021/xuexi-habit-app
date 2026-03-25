@@ -225,8 +225,11 @@
 <script setup>
 import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useUserStore } from '@/store/modules/user'
+import { useRoute } from 'vue-router'
 import { getDailyStars, getDailyTasks } from '@/api/statistics'
 import { getWeeklyReport, markReportViewed } from '@/api/report'
+
+const route = useRoute()
 import { showToast } from 'vant'
 
 const userStore = useUserStore()
@@ -262,6 +265,12 @@ const groupedTasks = computed(() => {
     grouped[date].push(item)
   }
   return grouped
+})
+
+// 如果 URL 有 childId 参数，说明是查看指定孩子的统计；否则是自己的
+const targetUserId = computed(() => {
+  return route.query.childId || userStore.userInfo?.id
+})
 })
 
 const groupedTasksCount = computed(() => Object.keys(groupedTasks.value).length)
@@ -348,9 +357,9 @@ const checkMondayPopup = async () => {
   if (localStorage.getItem(weekKey)) return
   
   // 获取上周报告数据
-  if (userStore.userInfo?.id) {
+  if (targetUserId.value) {
     try {
-      const res = await getWeeklyReport(userStore.userInfo.id, 'last')
+      const res = await getWeeklyReport(targetUserId.value, 'last')
       const data = res?.data?.data || res
       if (data) {
         lastWeekReport.value = data
@@ -365,9 +374,9 @@ const checkMondayPopup = async () => {
 
 const viewReport = async () => {
   // 点击"新报告"标签时，获取并显示上周报告
-  if (!lastWeekReport.value && userStore.userInfo?.id) {
+  if (!lastWeekReport.value && targetUserId.value) {
     try {
-      const res = await getWeeklyReport(userStore.userInfo.id, 'last')
+      const res = await getWeeklyReport(targetUserId.value, 'last')
       const data = res?.data?.data || res
       if (data) {
         lastWeekReport.value = data
@@ -380,11 +389,13 @@ const viewReport = async () => {
 }
 
 const loadWeeklyReport = async () => {
-  if (!userStore.userInfo?.id || !userStore.isChild) return
+  // 如果是查看孩子的统计（URL有childId），显示孩子的周报；否则只有孩子自己才能看周报
+  const isViewingChild = !!route.query.childId
+  if (!targetUserId.value || (!isViewingChild && !userStore.isChild)) return
   
   reportLoading.value = true
   try {
-    const res = await getWeeklyReport(userStore.userInfo.id)
+    const res = await getWeeklyReport(targetUserId.value)
     const data = res?.data?.data || res
     weeklyReport.value = data
     
@@ -399,19 +410,19 @@ const loadWeeklyReport = async () => {
 
 const loadStats = async () => {
   let attempts = 0
-  while (!userStore.userInfo?.id && attempts < 10) {
+  while (!targetUserId.value && attempts < 10) {
     await new Promise(resolve => setTimeout(resolve, 200))
     attempts++
   }
   
-  if (!userStore.userInfo?.id) {
+  if (!targetUserId.value) {
     showToast('未登录')
     loading.value = false
     return
   }
   
   try {
-    const data = await getDailyStars(userStore.userInfo.id)
+    const data = await getDailyStars(targetUserId.value)
     dailyStats.value = data || []
   } catch (error) {
     console.error('loadStats error:', error)
@@ -435,7 +446,7 @@ const loadTasks = async (reset = false) => {
   tasksLoading.value = true
   
   try {
-    const data = await getDailyTasks(userStore.userInfo.id, tasksOffset.value, tasksLimit)
+    const data = await getDailyTasks(targetUserId.value, tasksOffset.value, tasksLimit)
     if (reset) {
       taskItems.value = data.items || []
     } else {
