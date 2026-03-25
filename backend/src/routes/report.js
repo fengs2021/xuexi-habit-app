@@ -39,11 +39,8 @@ router.get("/weekly/:childId", async (ctx) => {
       [childId, weekStartStr]
     )
     
-    let report = reportRes.rows[0] || null
-    
-    if (!report) {
-      report = await generateWeeklyReport(childId, weekStartStr, weekEndStr)
-    }
+    // 始终重新生成报告以获取最新数据
+    let report = await generateWeeklyReport(childId, weekStartStr, weekEndStr)
     
     // 扁平化 data 字段到顶层
     if (report && report.data) {
