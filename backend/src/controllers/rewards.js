@@ -133,18 +133,18 @@ export async function checkAndAwardAchievements(userId) {
   `, [userId])
   const taskStreak = parseInt(taskStreakResult.rows[0]?.streak_days || 0)
   
-  // 检查早鸟和夜猫子（多种时间段）
+  // 检查早鸟和夜猫子（使用 created_at 时间戳）
   const earlyBirdResult = await pool.query(`
     SELECT COUNT(*) as cnt FROM task_logs
     WHERE user_id = $1 AND action = 'complete'
-    AND EXTRACT(HOUR FROM completed_date) < 8
+    AND EXTRACT(HOUR FROM created_at) < 8
   `, [userId])
   const hasEarlyBird = parseInt(earlyBirdResult.rows[0]?.cnt || 0) > 0
   
   const nightOwlResult = await pool.query(`
     SELECT COUNT(*) as cnt FROM task_logs
     WHERE user_id = $1 AND action = 'complete'
-    AND EXTRACT(HOUR FROM completed_date) >= 22
+    AND EXTRACT(HOUR FROM created_at) >= 22
   `, [userId])
   const hasNightOwl = parseInt(nightOwlResult.rows[0]?.cnt || 0) > 0
   
@@ -152,14 +152,14 @@ export async function checkAndAwardAchievements(userId) {
   const early6Result = await pool.query(`
     SELECT COUNT(*) as cnt FROM task_logs
     WHERE user_id = $1 AND action = 'complete'
-    AND EXTRACT(HOUR FROM completed_date) < 6
+    AND EXTRACT(HOUR FROM created_at) < 6
   `, [userId])
   const hasEarly6 = parseInt(early6Result.rows[0]?.cnt || 0) > 0
   
   const early7Result = await pool.query(`
     SELECT COUNT(*) as cnt FROM task_logs
     WHERE user_id = $1 AND action = 'complete'
-    AND EXTRACT(HOUR FROM completed_date) < 7
+    AND EXTRACT(HOUR FROM created_at) < 7
   `, [userId])
   const hasEarly7 = parseInt(early7Result.rows[0]?.cnt || 0) > 0
   
@@ -167,14 +167,14 @@ export async function checkAndAwardAchievements(userId) {
   const night21Result = await pool.query(`
     SELECT COUNT(*) as cnt FROM task_logs
     WHERE user_id = $1 AND action = 'complete'
-    AND EXTRACT(HOUR FROM completed_date) >= 21
+    AND EXTRACT(HOUR FROM created_at) >= 21
   `, [userId])
   const hasNight21 = parseInt(night21Result.rows[0]?.cnt || 0) > 0
   
   const night23Result = await pool.query(`
     SELECT COUNT(*) as cnt FROM task_logs
     WHERE user_id = $1 AND action = 'complete'
-    AND EXTRACT(HOUR FROM completed_date) >= 23
+    AND EXTRACT(HOUR FROM created_at) >= 23
   `, [userId])
   const hasNight23 = parseInt(night23Result.rows[0]?.cnt || 0) > 0
   
@@ -294,10 +294,9 @@ export async function checkAndAwardAchievements(userId) {
   const hasMonthlyStreak = loginStreak >= 30
   const hasCenturyStreak = loginStreak >= 100
   
-  // 家庭英雄：家庭成员完成过任务
+  // 家庭英雄：用户有家庭
   const familyHelperResult = await pool.query(`
-    SELECT COUNT(DISTINCT child_id) as cnt FROM family_members
-    WHERE parent_id = $1
+    SELECT COUNT(*) as cnt FROM users WHERE id = $1 AND family_id IS NOT NULL
   `, [userId])
   const hasFamilyMember = parseInt(familyHelperResult.rows[0]?.cnt || 0) > 0
   
@@ -305,8 +304,9 @@ export async function checkAndAwardAchievements(userId) {
   const familyStarResult = await pool.query(`
     SELECT COALESCE(SUM(tl.stars_earned), 0) as family_stars
     FROM task_logs tl
-    JOIN family_members fm ON tl.user_id = fm.child_id
-    WHERE fm.parent_id = $1 AND tl.approval_status = 'approved'
+    JOIN users u ON tl.user_id = u.id
+    WHERE u.family_id = (SELECT family_id FROM users WHERE id = $1)
+    AND tl.approval_status = 'approved'
   `, [userId])
   const hasFamilyStar100 = parseInt(familyStarResult.rows[0]?.family_stars || 0) >= 100
   
