@@ -12,7 +12,7 @@ function getCurrentWeekIdentifier() {
 }
 
 // 获取本周奖池的贴纸
-async function getWeeklyPoolStickers() {
+export async function getWeeklyPoolStickers() {
   const currentWeek = getCurrentWeekIdentifier()
   
   // 查询本周限定贴纸

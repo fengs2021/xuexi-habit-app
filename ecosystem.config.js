@@ -5,11 +5,13 @@ module.exports = {
       script: 'src/app.js',
       cwd: '/opt/xuexi-app/backend',
       interpreter: 'node',
-      env: {
-        NODE_ENV: 'production'
+      env_production: {
+        NODE_ENV: 'production',
+        DATABASE_URL: 'postgresql://postgres:xuexi123456@db:5432/xuexi',
+        JWT_SECRET: 'xuexi-super-secret-2026'
       },
-      env_file: '/opt/xuexi-app/.env',
       instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
       max_memory_restart: '500M',
