@@ -148,16 +148,6 @@ router.post('/checkin', async (ctx) => {
       description: `签到获得 ${bonus} 星星（连续${newStreak}天）`
     })
     
-    // 更新宠物亲密度（如果有）
-    try {
-      await client.query(
-        'UPDATE user_pets SET intimacy = intimacy + 1, updated_at = NOW() WHERE user_id = $1',
-        [userId]
-      )
-    } catch (e) {
-      // ignore if no pet
-    }
-    
     await client.query('COMMIT')
     
     ctx.body = success({

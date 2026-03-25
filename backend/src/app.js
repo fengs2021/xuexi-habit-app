@@ -14,7 +14,8 @@ import rewardRoutes from './routes/rewards.js'
 import exchangeRoutes from './routes/exchanges.js'
 import achievementRoutes from './routes/achievements.js'
 import signinRoutes from './routes/signin.js'
-import petRoutes from './routes/pet.js'
+// 宠物养护系统已移除（2026-03-25）
+// import petRoutes from './routes/pet.js'
 import approvalRoutes from './routes/approvals.js'
 import logRoutes from './routes/logs.js'
 import statisticsRoutes from './routes/statistics.js'
@@ -67,7 +68,7 @@ app.use(rewardRoutes.routes())
 app.use(exchangeRoutes.routes())
 app.use(achievementRoutes.routes())
 app.use(signinRoutes.routes())
-app.use(petRoutes.routes())
+// 宠物养护已移除 app.use(petRoutes.routes())
 app.use(logRoutes.routes())
 app.use(approvalRoutes.routes())
 app.use(statisticsRoutes.routes())

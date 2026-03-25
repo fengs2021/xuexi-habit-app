@@ -23,7 +23,6 @@ export const PointType = {
   
   // 消耗
   EXCHANGE: 'exchange',       // 兑换奖励
-  PET_CARE: 'pet_care',       // 宠物照顾
   DEDUCT: 'deduct',           // 惩罚扣分
   
   // 调整
