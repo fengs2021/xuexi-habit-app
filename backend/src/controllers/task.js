@@ -333,6 +333,54 @@ export async function getStudentTaskStatus(ctx) {
   }
 }
 
+// 获取本周期的任务完成状态（approved + pending），用于任务页面显示
+export async function getCycleTaskStatus(ctx) {
+  const user = await getUserFromToken(ctx)
+  if (!user) return
+  
+  if (user.role !== 'admin') {
+    ctx.body = error(ErrorCodes.FORBIDDEN, '无权限')
+    return
+  }
+  
+  try {
+    // 计算时间范围
+    const now = new Date()
+    
+    // 当天零点
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    
+    // 本周一
+    const dayOfWeek = now.getDay()
+    const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - daysSinceMonday)
+    weekStart.setHours(0, 0, 0, 0)
+    
+    // 查询本周期的所有完成记录（approved + pending）
+    const logsResult = await pool.query(
+      `SELECT tl.*, u.nickname as user_nickname, t.title as task_title, t.star_reward, t.frequency
+       FROM task_logs tl 
+       JOIN users u ON tl.user_id = u.id 
+       JOIN tasks t ON tl.task_id = t.id 
+       WHERE u.family_id = $1 
+         AND tl.action = 'complete'
+         AND (
+           (t.frequency = 'daily' AND tl.created_at >= $2)
+           OR (t.frequency = 'weekly' AND tl.created_at >= $3)
+           OR (t.frequency = 'once')
+         )
+       ORDER BY tl.created_at DESC`,
+      [user.family_id, todayStart.toISOString(), weekStart.toISOString()]
+    )
+    ctx.body = success(logsResult.rows)
+  } catch (err) {
+    console.error('GetCycleTaskStatus error:', err)
+    ctx.body = error(500, '获取失败')
+  }
+}
+
 export async function approveTaskLog(ctx) {
   const user = await getUserFromToken(ctx)
   if (!user) return

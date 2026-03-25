@@ -28,6 +28,10 @@ export function getStudentTaskStatus() {
   return request({ url: '/tasks/student-status', method: 'GET' })
 }
 
+export function getCycleTaskStatus() {
+  return request({ url: '/tasks/cycle-status', method: 'GET' })
+}
+
 export function approveTaskLog(id, data) {
   return request({ url: '/tasks/log/' + id + '/approve', method: 'POST', data })
 }

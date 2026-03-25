@@ -198,7 +198,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
-import { getTasks, createTask as createTaskApi, updateTask as updateTaskApi, deleteTask as deleteTaskApi, completeTask, skipTask, getStudentTaskStatus, approveTaskLog as approveTaskLogApi, deductStars } from '@/api/task'
+import { getTasks, createTask as createTaskApi, updateTask as updateTaskApi, deleteTask as deleteTaskApi, completeTask, skipTask, getStudentTaskStatus, getCycleTaskStatus, approveTaskLog as approveTaskLogApi, deductStars } from '@/api/task'
 import TaskCard from '@/components/TaskCard.vue'
 
 import { showToast } from 'vant'
@@ -271,7 +271,7 @@ const loadTasks = async () => {
       weeklyTasks.value = (data.weekly || []).map(mapTaskFields)
       specialTasks.value = (data.special || []).map(mapTaskFields)
       try {
-        const statusData = await getStudentTaskStatus()
+        const statusData = await getCycleTaskStatus()
         studentTaskStatus.value = statusData || []
       } catch (e) {
         studentTaskStatus.value = []
