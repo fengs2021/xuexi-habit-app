@@ -15,9 +15,9 @@ function getCurrentWeekIdentifier() {
 export async function getWeeklyPoolStickers() {
   const currentWeek = getCurrentWeekIdentifier()
   
-  // 查询本周限定贴纸
+  // 查询本周限定贴纸（返回完整字段）
   const limitedResult = await pool.query(
-    `SELECT id, rarity FROM stickers 
+    `SELECT id, name, emoji, rarity, description FROM stickers 
      WHERE (pool_type = 'limited' AND week_identifier = $1 AND is_active = true)
      OR pool_type = 'both'`,
     [currentWeek]
@@ -25,12 +25,11 @@ export async function getWeeklyPoolStickers() {
   
   // 如果有限定贴纸，使用通用+限定混合池
   if (limitedResult.rows.length > 0) {
-    const limitedIds = limitedResult.rows.map(r => r.id)
     const generalResult = await pool.query(
-      `SELECT id, rarity FROM stickers 
+      `SELECT id, name, emoji, rarity, description FROM stickers 
        WHERE pool_type = 'general' AND is_active = true
        UNION ALL
-       SELECT id, rarity FROM stickers 
+       SELECT id, name, emoji, rarity, description FROM stickers 
        WHERE pool_type = 'both' AND is_active = true`,
       []
     )
@@ -40,7 +39,7 @@ export async function getWeeklyPoolStickers() {
   
   // 否则只用通用池
   const result = await pool.query(
-    `SELECT id, rarity FROM stickers 
+    `SELECT id, name, emoji, rarity, description FROM stickers 
      WHERE pool_type = 'general' AND is_active = true`,
     []
   )
