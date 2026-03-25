@@ -133,7 +133,7 @@ export async function checkAndAwardAchievements(userId) {
   `, [userId])
   const taskStreak = parseInt(taskStreakResult.rows[0]?.streak_days || 0)
   
-  // 检查早鸟和夜猫子
+  // 检查早鸟和夜猫子（多种时间段）
   const earlyBirdResult = await pool.query(`
     SELECT COUNT(*) as cnt FROM task_logs
     WHERE user_id = $1 AND action = 'complete'
@@ -147,6 +147,184 @@ export async function checkAndAwardAchievements(userId) {
     AND EXTRACT(HOUR FROM completed_date) >= 22
   `, [userId])
   const hasNightOwl = parseInt(nightOwlResult.rows[0]?.cnt || 0) > 0
+  
+  // 早起成就（6点前、7点前）
+  const early6Result = await pool.query(`
+    SELECT COUNT(*) as cnt FROM task_logs
+    WHERE user_id = $1 AND action = 'complete'
+    AND EXTRACT(HOUR FROM completed_date) < 6
+  `, [userId])
+  const hasEarly6 = parseInt(early6Result.rows[0]?.cnt || 0) > 0
+  
+  const early7Result = await pool.query(`
+    SELECT COUNT(*) as cnt FROM task_logs
+    WHERE user_id = $1 AND action = 'complete'
+    AND EXTRACT(HOUR FROM completed_date) < 7
+  `, [userId])
+  const hasEarly7 = parseInt(early7Result.rows[0]?.cnt || 0) > 0
+  
+  // 深夜成就（21点后、23点后）
+  const night21Result = await pool.query(`
+    SELECT COUNT(*) as cnt FROM task_logs
+    WHERE user_id = $1 AND action = 'complete'
+    AND EXTRACT(HOUR FROM completed_date) >= 21
+  `, [userId])
+  const hasNight21 = parseInt(night21Result.rows[0]?.cnt || 0) > 0
+  
+  const night23Result = await pool.query(`
+    SELECT COUNT(*) as cnt FROM task_logs
+    WHERE user_id = $1 AND action = 'complete'
+    AND EXTRACT(HOUR FROM completed_date) >= 23
+  `, [userId])
+  const hasNight23 = parseInt(night23Result.rows[0]?.cnt || 0) > 0
+  
+  // 速度成就：5分钟内、10分钟内完成任务
+  const speed5Result = await pool.query(`
+    SELECT COUNT(*) as cnt FROM task_logs tl
+    JOIN tasks t ON tl.task_id = t.id
+    WHERE tl.user_id = $1 AND tl.action = 'complete'
+    AND EXTRACT(EPOCH FROM (tl.completed_date - t.created_at)) / 60 < 5
+  `, [userId])
+  const hasSpeed5 = parseInt(speed5Result.rows[0]?.cnt || 0) > 0
+  
+  const speed10Result = await pool.query(`
+    SELECT COUNT(*) as cnt FROM task_logs tl
+    JOIN tasks t ON tl.task_id = t.id
+    WHERE tl.user_id = $1 AND tl.action = 'complete'
+    AND EXTRACT(EPOCH FROM (tl.completed_date - t.created_at)) / 60 < 10
+  `, [userId])
+  const hasSpeed10 = parseInt(speed10Result.rows[0]?.cnt || 0) > 0
+  
+  // 完美一天：今天完成所有每日任务
+  const perfectDayResult = await pool.query(`
+    WITH daily_tasks AS (
+      SELECT COUNT(*) as total FROM tasks 
+      WHERE frequency = 'daily' AND is_active = true
+    ),
+    daily_completed AS (
+      SELECT COUNT(*) as done FROM task_logs tl
+      JOIN tasks t ON tl.task_id = t.id
+      WHERE tl.user_id = $1 AND tl.action = 'complete' 
+      AND t.frequency = 'daily'
+      AND tl.completed_date >= CURRENT_DATE
+    )
+    SELECT 
+      (SELECT total FROM daily_tasks) as total_daily,
+      (SELECT done FROM daily_completed) as done_daily
+  `, [userId])
+  const perfectDay = perfectDayResult.rows[0]
+  const hasPerfectDay = perfectDay && perfectDay.total_daily > 0 && perfectDay.done_daily >= perfectDay.total_daily
+  
+  // 完美一周：本周7天每天都有完成任务
+  const perfectWeekResult = await pool.query(`
+    SELECT COUNT(DISTINCT DATE(completed_date)) as days
+    FROM task_logs
+    WHERE user_id = $1 AND action = 'complete'
+    AND completed_date >= date_trunc('week', CURRENT_DATE)
+    AND completed_date < date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
+  `, [userId])
+  const hasPerfectWeek = parseInt(perfectWeekResult.rows[0]?.days || 0) >= 7
+  
+  // 全能选手：三种频率任务都完成过
+  const allFreqResult = await pool.query(`
+    SELECT COUNT(DISTINCT t.frequency) as freq_count
+    FROM task_logs tl
+    JOIN tasks t ON tl.task_id = t.id
+    WHERE tl.user_id = $1 AND tl.action = 'complete'
+    AND t.frequency IN ('daily', 'weekly', 'once')
+  `, [userId])
+  const hasAllFreq = parseInt(allFreqResult.rows[0]?.freq_count || 0) >= 3
+  
+  // 周末战士：周六和周日都完成任务
+  const weekendResult = await pool.query(`
+    SELECT 
+      COUNT(DISTINCT CASE WHEN EXTRACT(DOW FROM completed_date) = 0 THEN completed_date END) as sundays,
+      COUNT(DISTINCT CASE WHEN EXTRACT(DOW FROM completed_date) = 6 THEN completed_date END) as saturdays
+    FROM task_logs
+    WHERE user_id = $1 AND action = 'complete'
+    AND completed_date >= CURRENT_DATE - INTERVAL '7 days'
+  `, [userId])
+  const hasWeekend = weekendResult.rows[0] && 
+    parseInt(weekendResult.rows[0].sundays) > 0 && 
+    parseInt(weekendResult.rows[0].saturdays) > 0
+  
+  // 周日战神：连续3个周日都完成任务
+  const sundayWarriorResult = await pool.query(`
+    WITH recent_sundays AS (
+      SELECT DISTINCT DATE(completed_date) as sunday_date
+      FROM task_logs
+      WHERE user_id = $1 AND action = 'complete'
+      AND EXTRACT(DOW FROM completed_date) = 0
+      AND completed_date >= CURRENT_DATE - INTERVAL '30 days'
+      ORDER BY sunday_date DESC
+      LIMIT 5
+    )
+    SELECT COUNT(*) as consecutive_sundays FROM recent_sundays
+    WHERE sunday_date >= (SELECT MAX(sunday_date) FROM recent_sundays) - INTERVAL '3 weeks'
+  `, [userId])
+  const hasSundayWarrior = parseInt(sundayWarriorResult.rows[0]?.consecutive_sundays || 0) >= 3
+  
+  // 单日爆发：单日10星、单日5任务
+  const dayStarResult = await pool.query(`
+    SELECT COALESCE(SUM(stars_earned), 0) as stars
+    FROM task_logs
+    WHERE user_id = $1 AND action = 'complete'
+    AND completed_date >= CURRENT_DATE
+  `, [userId])
+  const hasDayStar10 = parseInt(dayStarResult.rows[0]?.stars || 0) >= 10
+  
+  const dayTaskResult = await pool.query(`
+    SELECT COUNT(*) as cnt FROM task_logs
+    WHERE user_id = $1 AND action = 'complete'
+    AND completed_date >= CURRENT_DATE
+  `, [userId])
+  const hasDayTask5 = parseInt(dayTaskResult.rows[0]?.cnt || 0) >= 5
+  
+  // 首次成就
+  const hasFirstTask = parseInt(stats.task_count) >= 1
+  const hasFirstStar = parseInt(stats.total_stars) >= 1
+  
+  // 目标成就（查询目标表）
+  const goalResult = await pool.query(`
+    SELECT COUNT(*) as cnt FROM goals WHERE user_id = $1
+  `, [userId])
+  const hasFirstGoal = parseInt(goalResult.rows[0]?.cnt || 0) >= 1
+  
+  // 连续登录：30天、100天
+  const hasMonthlyStreak = loginStreak >= 30
+  const hasCenturyStreak = loginStreak >= 100
+  
+  // 家庭英雄：家庭成员完成过任务
+  const familyHelperResult = await pool.query(`
+    SELECT COUNT(DISTINCT child_id) as cnt FROM family_members
+    WHERE parent_id = $1
+  `, [userId])
+  const hasFamilyMember = parseInt(familyHelperResult.rows[0]?.cnt || 0) > 0
+  
+  // 家族荣耀：家庭累计100星
+  const familyStarResult = await pool.query(`
+    SELECT COALESCE(SUM(tl.stars_earned), 0) as family_stars
+    FROM task_logs tl
+    JOIN family_members fm ON tl.user_id = fm.child_id
+    WHERE fm.parent_id = $1 AND tl.approval_status = 'approved'
+  `, [userId])
+  const hasFamilyStar100 = parseInt(familyStarResult.rows[0]?.family_stars || 0) >= 100
+  
+  // 绝地反击：中断后重新连续7天
+  const comebackResult = await pool.query(`
+    WITH streaks AS (
+      SELECT task_date, 
+             task_date - ROW_NUMBER() OVER (ORDER BY task_date DESC)::int as grp
+      FROM (
+        SELECT DISTINCT DATE(completed_date) as task_date
+        FROM task_logs WHERE user_id = $1 AND action = 'complete'
+      ) dates
+    )
+    SELECT MAX(streak_len) as max_streak FROM (
+      SELECT grp, COUNT(*) as streak_len FROM streaks GROUP BY grp
+    ) sub
+  `, [userId])
+  const hasComeback = parseInt(comebackResult.rows[0]?.max_streak || 0) >= 7
   
   const achievementsResult = await pool.query('SELECT * FROM achievement_definitions')
   
@@ -190,6 +368,38 @@ export async function checkAndAwardAchievements(userId) {
     else if (type === 'count_task_30' && maxTaskCount >= 30) shouldAward = true
     else if (type === 'count_task_60' && maxTaskCount >= 60) shouldAward = true
     else if (type === 'count_task_100' && maxTaskCount >= 100) shouldAward = true
+    // 速度成就
+    else if (type === 'speed_task_5' && hasSpeed5) shouldAward = true
+    else if (type === 'speed_task_10' && hasSpeed10) shouldAward = true
+    // 完美日/周
+    else if (type === 'perfect_day' && hasPerfectDay) shouldAward = true
+    else if (type === 'perfect_week' && hasPerfectWeek) shouldAward = true
+    // 早起成就
+    else if (type === 'early_6' && hasEarly6) shouldAward = true
+    else if (type === 'early_7' && hasEarly7) shouldAward = true
+    // 深夜成就
+    else if (type === 'night_21' && hasNight21) shouldAward = true
+    else if (type === 'night_23' && hasNight23) shouldAward = true
+    // 全能/周末
+    else if (type === 'all_frequency' && hasAllFreq) shouldAward = true
+    else if (type === 'weekend_warrior' && hasWeekend) shouldAward = true
+    else if (type === 'sunday_warrior' && hasSundayWarrior) shouldAward = true
+    // 单日爆发
+    else if (type === 'day_star_10' && hasDayStar10) shouldAward = true
+    else if (type === 'day_task_5' && hasDayTask5) shouldAward = true
+    // 首次成就
+    else if (type === 'first_task' && hasFirstTask) shouldAward = true
+    else if (type === 'first_star' && hasFirstStar) shouldAward = true
+    else if (type === 'first_goal' && hasFirstGoal) shouldAward = true
+    // 连续登录
+    else if (type === 'monthly_streak' && hasMonthlyStreak) shouldAward = true
+    else if (type === 'century_streak' && hasCenturyStreak) shouldAward = true
+    // 家庭成就
+    else if (type === 'family_helper' && hasFamilyMember) shouldAward = true
+    else if (type === 'family_star_100' && hasFamilyStar100) shouldAward = true
+    // 绝地反击
+    else if (type === 'comeback' && hasComeback) shouldAward = true
+    else if (type === 'never_give_up' && loginStreak >= 30) shouldAward = true
     
     if (shouldAward) {
       await pool.query(
