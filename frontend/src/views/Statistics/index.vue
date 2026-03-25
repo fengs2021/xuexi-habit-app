@@ -256,7 +256,9 @@ const totalTasksDays = ref(0)
 
 const groupedTasks = computed(() => {
   const grouped = {}
-  for (const item of taskItems.value) {
+  // 只显示已完成的任务（排除跳过的）
+  const completedTasks = taskItems.value.filter(item => item.action === 'complete')
+  for (const item of completedTasks) {
     const date = item.completed_date
     if (!grouped[date]) {
       grouped[date] = []

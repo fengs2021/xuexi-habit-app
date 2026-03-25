@@ -43,10 +43,6 @@
         </van-button>
       </div>
     </div>
-    <div class="task-skip" @click.stop="skip" v-if="!task.completed && !task.pendingApproval">
-      <van-icon name="cross" />
-      <span>跳过</span>
-    </div>
   </div>
 
   <CelebrationAnimation 
@@ -64,7 +60,7 @@ import CelebrationAnimation from './CelebrationAnimation.vue'
 const props = defineProps({
   task: Object
 })
-const emit = defineEmits(['complete', 'skip'])
+const emit = defineEmits(['complete'])
 
 let startX = 0
 let currentX = 0
@@ -83,9 +79,6 @@ const onTouchMove = (e) => {
 }
 
 const onTouchEnd = () => {
-  if (isSwiped.value) {
-    skip()
-  }
   isSwiped.value = false
 }
 
@@ -99,9 +92,6 @@ const complete = async () => {
   }
 }
 
-const skip = async () => {
-  await emit('skip', props.task)
-}
 </script>
 
 <style scoped>
@@ -121,9 +111,6 @@ const skip = async () => {
   border-color: #FFB6C1;
   transform: translateY(-3px);
   box-shadow: 0 6px 20px rgba(255, 105, 180, 0.25);
-}
-.task-card.swiped {
-  transform: translateX(-60px);
 }
 .task-content {
   flex: 1;
@@ -178,20 +165,5 @@ const skip = async () => {
   border: none !important;
   color: #fff !important;
   border-radius: 22px !important;
-}
-.task-skip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #C9A0A0;
-  font-size: 11px;
-  margin-left: 10px;
-  padding: 10px;
-  border-radius: 14px;
-  transition: all 0.2s;
-}
-.task-skip:active {
-  background: #FFF0F5;
-  color: #FF69B4;
 }
 </style>

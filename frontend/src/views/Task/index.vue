@@ -117,7 +117,6 @@
             :key="task.id"
             :task="task"
             @complete="handleComplete"
-            @skip="handleSkip"
           />
           <van-empty v-if="dailyTasks.length === 0" description="今日无每日任务" />
         </van-tab>
@@ -127,7 +126,6 @@
             :key="task.id"
             :task="task"
             @complete="handleComplete"
-            @skip="handleSkip"
           />
           <van-empty v-if="weeklyTasks.length === 0" description="本周无每周任务" />
         </van-tab>
@@ -137,7 +135,6 @@
             :key="task.id"
             :task="task"
             @complete="handleComplete"
-            @skip="handleSkip"
           />
           <van-empty v-if="specialTasks.length === 0" description="无特殊任务" />
         </van-tab>
@@ -198,7 +195,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
-import { getTasks, createTask as createTaskApi, updateTask as updateTaskApi, deleteTask as deleteTaskApi, completeTask, skipTask, getStudentTaskStatus, getCycleTaskStatus, approveTaskLog as approveTaskLogApi, deductStars } from '@/api/task'
+import { getTasks, createTask as createTaskApi, updateTask as updateTaskApi, deleteTask as deleteTaskApi, completeTask, getStudentTaskStatus, getCycleTaskStatus, approveTaskLog as approveTaskLogApi, deductStars } from '@/api/task'
 import TaskCard from '@/components/TaskCard.vue'
 
 import { showToast } from 'vant'
@@ -349,16 +346,6 @@ const handleComplete = async (task) => {
   try {
     await completeTask(task.id)
     showToast('已提交家长审批')
-    await loadTasks()
-  } catch (error) {
-    showToast(error.message || '操作失败')
-  }
-}
-
-const handleSkip = async (task) => {
-  try {
-    await skipTask(task.id)
-    showToast('已跳过')
     await loadTasks()
   } catch (error) {
     showToast(error.message || '操作失败')

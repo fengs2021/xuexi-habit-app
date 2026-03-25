@@ -81,7 +81,6 @@
           :key="task.id"
           :task="task"
           @complete="handleComplete"
-          @skip="handleSkip"
         />
         <van-empty v-if="!loading && tasks.length === 0" description="今日无任务，休息一下吧！🌈" />
       </van-cell-group>
@@ -92,7 +91,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
-import { getTasks, completeTask, skipTask } from '@/api/task'
+import { getTasks, completeTask } from '@/api/task'
 import { getChildrenTaskProgress } from '@/api/family'
 import TaskCard from '@/components/TaskCard.vue'
 import SigninCard from '@/components/SigninCard.vue'
@@ -159,16 +158,6 @@ const handleComplete = async (task) => {
   try {
     await completeTask(task.id)
     showToast({ message: '✨ 任务完成！+' + (task.starReward || task.star_reward || 1) + '星', duration: 1500 })
-    loadTasks()
-  } catch (error) {
-    showToast('操作失败')
-  }
-}
-
-const handleSkip = async (task) => {
-  try {
-    await skipTask(task.id)
-    showToast('已跳过')
     loadTasks()
   } catch (error) {
     showToast('操作失败')
