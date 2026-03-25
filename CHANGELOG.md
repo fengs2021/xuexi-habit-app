@@ -1,5 +1,21 @@
 # 更新日志
 
+## [v1.2.3] - 2026-03-25
+
+### 📦 部署优化
+
+- **初始数据SQL脚本**
+  - `backend/sql/init-stickers.sql` - 贴纸初始数据（通用池+限定池）
+  - `backend/sql/init-achievements.sql` - 成就初始数据（50个成就）
+  - `backend/sql/init-data.sql` - 统一导入脚本
+  - `docs/API.md` - API文档
+
+### 使用方式
+```bash
+# 导入初始数据
+psql -U postgres -d xuexi -f backend/sql/init-data.sql
+```
+
 ## [v1.2.2] - 2026-03-25
 
 ### 🐛 Bug 修复
