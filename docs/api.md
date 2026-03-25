@@ -375,15 +375,6 @@
 { "rewardId": "奖励UUID" }
 ```
 
-### GET /api/exchanges/pending
-**获取待审批兑换列表**（家长，需认证）
-
-### PUT /api/exchanges/:id/approve
-**批准兑换**（家长，需认证）
-
-### PUT /api/exchanges/:id/reject
-**拒绝兑换**（家长，需认证）
-
 ### GET /api/exchanges/history
 **获取兑换历史**（需认证）
 
@@ -399,10 +390,12 @@
 
 ## 审批接口
 
-> 统一的审批入口，可以审批任务和兑换
+> ✅ 统一的审批入口，用于审批任务和兑换
+> 
+> ⚠️ 兑换审批推荐使用 `/api/approvals/*` 入口
 
 ### GET /api/approvals/pending
-**获取所有待审批项目**
+**获取所有待审批项目**（任务 + 兑换）
 
 ### GET /api/approvals/history
 **获取审批历史**
