@@ -85,7 +85,8 @@ CREATE DATABASE xuexi;
 
 ```bash
 cd backend
-psql -U postgres -d xuexi -f ../docs/database.sql
+psql -U postgres -d xuexi -f ../docs/database.sql          # 建表脚本
+psql -U postgres -d xuexi -f ./sql/init-data.sql           # 初始数据（贴纸+成就）
 ```
 
 ### 5. 启动开发服务器
@@ -179,7 +180,10 @@ SELECT * FROM point_consistency_check WHERE status = '❌ 不一致';
 
 ### 🎨 贴纸系统
 
-50种贴纸，支持装备2张展示在首页
+- 70种贴纸（N/R/SR/SSR 4级稀有度）
+- 通用池（长期）+ 限定池（每周刷新）
+- 支持装备2张展示在首页
+- 贴纸抽奖系统（5积分/次，20次保底）
 
 ### 📝 签到奖励
 
