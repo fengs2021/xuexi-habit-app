@@ -103,8 +103,8 @@ const getPetImage = (pet) => {
     // 从imagePets中查找完整URL
     const found = imagePets.value.find(p => p.filename === pet)
     if (found && found.url) return found.url
-    // 否则拼接URL（使用公网IP）
-    return `${import.meta.env.VITE_API_BASE_URL}/avatars/${pet}`
+    // 否则拼接URL（头像使用/avatars路径，不用/api前缀）
+    return `/avatars/${pet}`
   }
   return ''
 }

@@ -181,11 +181,12 @@ const handleClearTarget = async () => {
   showToast('已取消目标')
 }
 
-// 获取头像URL
+// 获取头像URL（头像使用单独路径，不用/api前缀）
 const getAvatarUrl = (filename) => {
   if (!filename) return ''
   if (filename.startsWith('http')) return filename
-  return `${import.meta.env.VITE_API_BASE_URL}/avatars/${filename}`
+  // 头像直接从/avatars路径获取，不要加/api前缀
+  return `/avatars/${filename}`
 }
 
 // 判断是否是宠物图片（而不是emoji）
