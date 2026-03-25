@@ -298,17 +298,24 @@ export async function getStudentTaskStatus(ctx) {
   }
   
   try {
-    // 计算本周期的开始时间
+    // 计算时间范围
     const now = new Date()
-    let cycleStart = new Date()
-    cycleStart.setHours(0, 0, 0, 0)
+    
+    // 当天零点
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    
+    // 本周一（周一=0, ... 周日=6）
     const dayOfWeek = now.getDay()
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
     const weekStart = new Date(now)
-    weekStart.setDate(now.getDate() - diff)
+    weekStart.setDate(now.getDate() - daysSinceMonday)
     weekStart.setHours(0, 0, 0, 0)
     
-    // 只查询本周期待审批的记录（pending 或已审批的）
+    // 查询待审批记录（pending 状态）
+    // - 每日任务：当天提交且待审批
+    // - 每周任务：本周提交且待审批
+    // - 特殊任务(once)：不限制时间，只要有待审批就显示
     const logsResult = await pool.query(
       `SELECT tl.*, u.nickname as user_nickname, t.title as task_title, t.star_reward, t.frequency
        FROM task_logs tl 
@@ -316,10 +323,15 @@ export async function getStudentTaskStatus(ctx) {
        JOIN tasks t ON tl.task_id = t.id 
        WHERE u.family_id = $1 
          AND tl.action = 'complete'
-         AND tl.created_at >= $2
+         AND tl.approval_status = 'pending'
+         AND (
+           (t.frequency = 'daily' AND tl.created_at >= $2)
+           OR (t.frequency = 'weekly' AND tl.created_at >= $3)
+           OR (t.frequency = 'once')
+         )
        ORDER BY tl.created_at DESC 
        LIMIT 50`,
-      [user.family_id, weekStart.toISOString()]
+      [user.family_id, todayStart.toISOString(), weekStart.toISOString()]
     )
     ctx.body = success(logsResult.rows)
   } catch (err) {
