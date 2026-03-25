@@ -14,7 +14,7 @@
         <van-cell v-for="child in childrenProgress" :key="child.id">
           <template #title>
             <div class="child-info">
-              <img v-if="child.avatar_id" :src="getAvatarUrl(child.avatar_id)" class="child-avatar" />
+              <img v-if="child.avatar_filename" :src="getAvatarUrl(child.avatar_filename)" class="child-avatar" />
               <span v-else-if="child.pet" class="child-avatar">{{ child.pet }}</span>
               <span v-else class="child-avatar">👶</span>
               <span class="child-name">{{ child.nickname }}</span>

@@ -29,9 +29,11 @@ router.get('/children-task-progress', async (ctx) => {
     // 获取所有孩子及其头像/宠物设置
     const childrenResult = await pool.query(
       `SELECT u.id, u.nickname, u.avatar, u.role, u.level, u.stars,
-              ds.pet, ds.avatar_id
+              ds.pet, ds.avatar_id,
+              a.filename as avatar_filename
        FROM users u
        LEFT JOIN user_display_settings ds ON u.id = ds.user_id
+       LEFT JOIN avatars a ON ds.avatar_id = a.id
        WHERE u.family_id = $1 AND u.role = 'child'`,
       [decoded.familyId]
     )
