@@ -148,6 +148,7 @@ const loadTasks = async () => {
 const loadChildrenProgress = async () => {
   try {
     const data = await getChildrenTaskProgress()
+    console.log('【调试】原始 API 返回 data:', data)
     console.log('【调试】childrenProgress 数据:', JSON.stringify(data, null, 2))
     childrenProgress.value = data || []
     console.log('【调试】childrenProgress.value:', JSON.stringify(childrenProgress.value, null, 2))
