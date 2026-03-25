@@ -228,10 +228,9 @@ import { useUserStore } from '@/store/modules/user'
 import { useRoute } from 'vue-router'
 import { getDailyStars, getDailyTasks } from '@/api/statistics'
 import { getWeeklyReport, markReportViewed } from '@/api/report'
-
-const route = useRoute()
 import { showToast } from 'vant'
 
+const route = useRoute()
 const userStore = useUserStore()
 const dailyStats = ref([])
 const loading = ref(true)
@@ -270,7 +269,6 @@ const groupedTasks = computed(() => {
 // 如果 URL 有 childId 参数，说明是查看指定孩子的统计；否则是自己的
 const targetUserId = computed(() => {
   return route.query.childId || userStore.userInfo?.id
-})
 })
 
 const groupedTasksCount = computed(() => Object.keys(groupedTasks.value).length)
