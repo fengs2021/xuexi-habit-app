@@ -1,6 +1,25 @@
-# API 接口文档 v3.3
+# API 接口文档 v3.4
 
-> 与代码版本完全一致 | 最后更新: 2026-03-24
+> 与代码版本完全一致 | 最后更新: 2026-03-25
+
+---
+
+## 重要更新 (v3.4)
+
+### 任务完成状态查询分离
+
+由于家长端需要同时查看「已完成」和「待审批」状态，任务相关的状态查询已分离为两个独立的 API：
+
+| API | 用途 | 返回内容 |
+|-----|------|---------|
+| `GET /api/tasks/student-status` | 审批页面专用 | 所有 pending 记录（不限时间） |
+| `GET /api/tasks/cycle-status` | 任务页面专用 | 本周期的 approved + pending 记录 |
+
+### 时间周期说明
+
+- **每日任务**：以北京时间 00:00 为新的一天开始
+- **每周任务**：以北京时间周一 00:00 为本周开始
+- **转盘**：以北京时间 00:00 为新的一天开始
 
 ---
 
@@ -258,7 +277,54 @@
 > ⚠️ 会检查本周期是否已操作
 
 ### GET /api/tasks/student-status
-**获取学生任务状态**（家长，需认证）
+**获取学生待审批任务列表**（家长，审批页面专用）
+
+> ⚠️ 返回所有 pending 状态的记录，不限时间范围
+
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "uuid",
+      "user_id": "孩子UUID",
+      "task_id": "任务UUID",
+      "action": "complete",
+      "approval_status": "pending",
+      "stars_earned": 2,
+      "user_nickname": "瑶瑶",
+      "task_title": "练字",
+      "frequency": "daily",
+      "created_at": "2026-03-25T..."
+    }
+  ]
+}
+```
+
+### GET /api/tasks/cycle-status
+**获取本周期的任务完成状态**（家长，任务页面专用）
+
+> ⚠️ 返回本周期的 approved + pending 记录，用于任务页面显示「已完成」和「待审批」
+
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": "uuid",
+      "user_id": "孩子UUID",
+      "task_id": "任务UUID",
+      "action": "complete",
+      "approval_status": "approved",  // 或 "pending"
+      "stars_earned": 2,
+      "user_nickname": "瑶瑶",
+      "task_title": "练字",
+      "frequency": "daily",
+      "created_at": "2026-03-25T..."
+    }
+  ]
+}
+```
 
 ### POST /api/tasks/log/:id/approve
 **审批任务**（家长，需认证）
