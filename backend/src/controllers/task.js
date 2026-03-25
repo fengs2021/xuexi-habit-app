@@ -298,9 +298,28 @@ export async function getStudentTaskStatus(ctx) {
   }
   
   try {
+    // 计算本周期的开始时间
+    const now = new Date()
+    let cycleStart = new Date()
+    cycleStart.setHours(0, 0, 0, 0)
+    const dayOfWeek = now.getDay()
+    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - diff)
+    weekStart.setHours(0, 0, 0, 0)
+    
+    // 只查询本周期待审批的记录（pending 或已审批的）
     const logsResult = await pool.query(
-      'SELECT tl.*, u.nickname as user_nickname, t.title as task_title, t.star_reward FROM task_logs tl JOIN users u ON tl.user_id = u.id JOIN tasks t ON tl.task_id = t.id WHERE u.family_id = $1 AND tl.action = $2 ORDER BY tl.created_at DESC LIMIT 50',
-      [user.family_id, 'complete']
+      `SELECT tl.*, u.nickname as user_nickname, t.title as task_title, t.star_reward, t.frequency
+       FROM task_logs tl 
+       JOIN users u ON tl.user_id = u.id 
+       JOIN tasks t ON tl.task_id = t.id 
+       WHERE u.family_id = $1 
+         AND tl.action = 'complete'
+         AND tl.created_at >= $2
+       ORDER BY tl.created_at DESC 
+       LIMIT 50`,
+      [user.family_id, weekStart.toISOString()]
     )
     ctx.body = success(logsResult.rows)
   } catch (err) {
