@@ -41,6 +41,7 @@
             label="邀请码"
             placeholder="请输入家庭邀请码"
             @update:model-value="loadChildren"
+            @focus="loadSavedInviteCode"
           />
         </van-cell-group>
 
@@ -90,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { registerParent } from '@/api/auth'
@@ -112,6 +113,11 @@ const currentChildId = ref('')
 const parentForm = reactive({ phone: '', password: '' })
 const registerForm = reactive({ phone: '', password: '', nickname: '', inviteCode: '' })
 
+// 页面加载时自动填充上次邀请码
+onMounted(() => {
+  loadSavedInviteCode()
+})
+
 const loadChildren = async (val) => {
   if (!val || val.length < 4) return
   try {
@@ -127,6 +133,15 @@ const loadChildren = async (val) => {
   } catch (error) {
     console.error('loadChildren error:', error)
     showToast('加载失败')
+  }
+}
+
+// 加载保存的邀请码
+const loadSavedInviteCode = () => {
+  const savedCode = localStorage.getItem('student_invite_code')
+  if (savedCode && !inviteCode.value) {
+    inviteCode.value = savedCode
+    loadChildren(savedCode)
   }
 }
 
@@ -150,6 +165,10 @@ const doChildLogin = async () => {
       setToken(data.data.token)
       if (data.data.refreshToken) {
         setRefreshToken(data.data.refreshToken)
+      }
+      // 保存邀请码到本地
+      if (inviteCode.value) {
+        localStorage.setItem('student_invite_code', inviteCode.value)
       }
       showToast('登录成功')
       router.push('/dashboard')
