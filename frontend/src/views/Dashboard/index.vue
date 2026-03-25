@@ -148,9 +148,11 @@ const loadTasks = async () => {
 const loadChildrenProgress = async () => {
   try {
     const data = await getChildrenTaskProgress()
+    console.log('【调试】childrenProgress 数据:', JSON.stringify(data, null, 2))
     childrenProgress.value = data || []
+    console.log('【调试】childrenProgress.value:', JSON.stringify(childrenProgress.value, null, 2))
   } catch (error) {
-    console.error('加载家庭成员进度失败', error)
+    console.error('【调试】加载家庭成员进度失败', error)
   }
 }
 
