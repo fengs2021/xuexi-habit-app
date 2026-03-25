@@ -1,15 +1,15 @@
 
-// Helper to get user stars from summary table
+// Helper to get user stars from users table (authoritative source)
 async function getUserStars(userId) {
-  const summaryResult = await pool.query(
-    'SELECT total_earned, total_used FROM user_point_summary WHERE user_id = $1',
+  const userResult = await pool.query(
+    'SELECT stars, total_stars FROM users WHERE id = $1',
     [userId]
   )
-  const summary = summaryResult.rows[0] || { total_earned: 0, total_used: 0 }
+  const user = userResult.rows[0] || { stars: 0, total_stars: 0 }
   return {
-    stars: parseInt(summary.total_earned || 0) - parseInt(summary.total_used || 0),
-    totalStars: parseInt(summary.total_earned || 0),
-    usedStars: parseInt(summary.total_used || 0)
+    stars: parseInt(user.stars || 0),
+    totalStars: parseInt(user.total_stars || 0),
+    usedStars: parseInt(user.total_stars || 0) - parseInt(user.stars || 0)
   }
 }
 
