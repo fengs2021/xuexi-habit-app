@@ -298,24 +298,7 @@ export async function getStudentTaskStatus(ctx) {
   }
   
   try {
-    // 计算时间范围
-    const now = new Date()
-    
-    // 当天零点
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    
-    // 本周一（周一=0, ... 周日=6）
-    const dayOfWeek = now.getDay()
-    const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-    const weekStart = new Date(now)
-    weekStart.setDate(now.getDate() - daysSinceMonday)
-    weekStart.setHours(0, 0, 0, 0)
-    
-    // 查询待审批记录（pending 状态）
-    // - 每日任务：当天提交且待审批
-    // - 每周任务：本周提交且待审批
-    // - 特殊任务(once)：不限制时间，只要有待审批就显示
+    // 查询所有待审批记录（不限时间）
     const logsResult = await pool.query(
       `SELECT tl.*, u.nickname as user_nickname, t.title as task_title, t.star_reward, t.frequency
        FROM task_logs tl 
@@ -324,14 +307,9 @@ export async function getStudentTaskStatus(ctx) {
        WHERE u.family_id = $1 
          AND tl.action = 'complete'
          AND tl.approval_status = 'pending'
-         AND (
-           (t.frequency = 'daily' AND tl.created_at >= $2)
-           OR (t.frequency = 'weekly' AND tl.created_at >= $3)
-           OR (t.frequency = 'once')
-         )
        ORDER BY tl.created_at DESC 
        LIMIT 50`,
-      [user.family_id, todayStart.toISOString(), weekStart.toISOString()]
+      [user.family_id]
     )
     ctx.body = success(logsResult.rows)
   } catch (err) {
