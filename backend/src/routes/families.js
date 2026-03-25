@@ -37,6 +37,7 @@ router.get('/children-task-progress', async (ctx) => {
        WHERE u.family_id = $1 AND u.role = 'child'`,
       [decoded.familyId]
     )
+    console.log('【调试】孩子查询结果:', JSON.stringify(childrenResult.rows, null, 2))
     
     const today = new Date().toISOString().split('T')[0]
     const now = new Date()
