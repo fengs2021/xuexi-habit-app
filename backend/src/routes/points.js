@@ -77,16 +77,12 @@ router.get('/child-summary/:childId', async (ctx) => {
   const { childId } = ctx.params
 
   try {
-    // 从 users 表获取当前余额
-    const userResult = await pool.query(
-      'SELECT stars, total_stars FROM users WHERE id = $1',
-      [childId]
-    )
-
-    if (userResult.rows.length === 0) {
-      ctx.body = error(404, '用户不存在')
-      return
-    }
+    // 从 point_logs 实时计算余额（比 users 表更准确）
+    const balanceResult = await pool.query(`
+      SELECT COALESCE(SUM(amount), 0) as balance 
+      FROM point_logs WHERE user_id = $1
+    `, [childId])
+    const calculatedBalance = parseInt(balanceResult.rows[0].balance)
 
     // 从积分明细计算获得和消费总额
     const statsResult = await pool.query(`
@@ -98,10 +94,9 @@ router.get('/child-summary/:childId', async (ctx) => {
     `, [childId])
 
     const stats = statsResult.rows[0]
-    const user = userResult.rows[0]
 
     ctx.body = success({
-      currentBalance: user.stars,
+      currentBalance: calculatedBalance,
       totalEarned: parseInt(stats.total_earned),
       totalSpent: parseInt(stats.total_spent),
       // 从 point_logs 按类型汇总
