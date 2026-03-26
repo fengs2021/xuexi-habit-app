@@ -84,6 +84,7 @@
 - [连续打卡接口](#连续打卡接口)
 - [统计接口](#统计接口)
 - [贴纸接口](#贴纸接口)
+- [贴纸抽奖接口 (Sticker Lottery)](#贴纸抽奖接口-sticker-lottery)
 - [宠物接口](#宠物接口)
 - [转盘接口](#转盘接口)
 - [周报接口](#周报接口)
@@ -152,6 +153,14 @@
 ```json
 // 请求
 { "deviceId": "设备ID" }  // 或 { "userId": "用户UUID" }
+```
+
+### POST /api/auth/logout
+**退出登录**
+
+```json
+// 请求（无需参数）
+{}
 ```
 
 ### POST /api/auth/refresh
@@ -727,6 +736,58 @@
 | 狗 | 150 | 🐶 |
 | 熊 | 250 | 🐻 |
 | 熊猫 | 400 | 🐼 |
+
+---
+
+## 贴纸抽奖接口 (Sticker Lottery)
+
+### GET /api/sticker-lottery/weekly-limited
+**获取本周限定贴纸**
+
+### GET /api/sticker-lottery/progress/:userId
+**获取用户抽奖进度**
+
+```json
+{
+  "code": 0,
+  "data": {
+    "drawsToday": 0,       // 今日抽奖次数
+    "totalDraws": 5,       // 今日总次数
+    "guaranteeProgress": 3 // 保底进度（满5次必中）
+  }
+}
+```
+
+### POST /api/sticker-lottery/draw/:userId
+**执行抽奖**
+
+```json
+{
+  "code": 0,
+  "data": {
+    "sticker": {
+      "id": "uuid",
+      "name": "限定贴纸名称",
+      "rarity": "rare",
+      "imageUrl": "..."
+    },
+    "isGuaranteed": false,  // 是否保底触发
+    "guaranteeProgress": 4  // 抽奖后保底进度
+  }
+}
+```
+
+### POST /api/sticker-lottery/guarantee-exchange/:userId
+**保底兑换指定贴纸**
+
+```json
+{
+  "stickerId": "uuid"
+}
+```
+
+### GET /api/sticker-lottery/exchange-options/:userId
+**获取可选兑换列表（保底兑换）**
 
 ---
 
