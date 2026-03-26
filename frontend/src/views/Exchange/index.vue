@@ -291,6 +291,7 @@ const approveTask = async (id, approved) => {
     showToast(approved ? '已批准' : '已拒绝')
     await loadPending()
     await loadHistory()
+    if (activeTab.value === 2) loadPointData()  // 刷新积分明细
   } catch (error) {
     showToast('操作失败')
   }
@@ -302,6 +303,7 @@ const approveExchange = async (id, approved) => {
     showToast(approved ? '已批准' : '已拒绝')
     await loadPending()
     await userStore.getUserInfoAction()
+    if (activeTab.value === 2) loadPointData()  // 刷新积分明细
   } catch (error) {
     showToast('操作失败')
   }
@@ -315,6 +317,7 @@ const reverseApproval = async (id, type) => {
     await loadHistory()
     await loadPending()
     await userStore.getUserInfoAction()
+    if (activeTab.value === 2) loadPointData()  // 刷新积分明细
   } catch (error) {
     showToast('撤销失败')
   }
@@ -336,7 +339,7 @@ onMounted(() => {
 
 // 当切换到积分明细标签时加载数据
 watch(activeTab, (newVal) => {
-  if (newVal === 2 && !pointLogs.value.length && selectedChildId.value) {
+  if (newVal === 2 && pointLogs.value.length === 0) {
     loadPointData()
   }
 })
