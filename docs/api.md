@@ -400,6 +400,28 @@
 ### GET /api/approvals/history
 **获取审批历史**
 
+```json
+{
+  "code": 0,
+  "data": {
+    "tasks": [
+      {
+        "id": "uuid",
+        "user_id": "uuid",
+        "task_id": "uuid",
+        "action": "complete",        // 动作类型：complete(已完成)/skipped(已跳过)
+        "stars_earned": 1,
+        "approval_status": "approved",
+        "task_title": "按时起床",
+        "user_nickname": "瑶瑶",
+        "created_at": "2026-03-25T10:00:00Z"
+      }
+    ],
+    "exchanges": [...]
+  }
+}
+```
+
 ### PUT /api/approvals/task/:id
 **审批任务**
 
@@ -419,6 +441,57 @@
 
 ```json
 { "type": "task" | "exchange" }
+```
+
+---
+
+## 积分明细接口
+
+### GET /api/points/child-logs/:childId
+**获取孩子积分明细记录**（需认证）
+
+```json
+{
+  "code": 0,
+  "data": {
+    "items": [
+      {
+        "id": "uuid",
+        "amount": 1,                    // 积分变动（正数获得，负数消费）
+        "balance_after": 75,           // 变动后余额
+        "type": "task_approve",         // 类型：signin/task_approve/achievement/wheel/exchange/lottery/deduct/adjust
+        "source": "task_log",
+        "description": "完成任务：按时起床",  // 描述
+        "created_at": "2026-03-26T10:00:00Z",
+        "childNickname": "瑶瑶"         // 孩子昵称（多孩子时区分）
+      }
+    ],
+    "total": 23,                     // 总记录数
+    "hasMore": false                  // 是否有更多
+  }
+}
+```
+
+### GET /api/points/child-summary/:childId
+**获取孩子积分汇总**（需认证）
+
+```json
+{
+  "code": 0,
+  "data": {
+    "currentBalance": 75,              // 当前余额
+    "totalEarned": 100,               // 累计获得
+    "totalSpent": 25,                 // 累计消费
+    "byType": [                       // 按类型分类
+      {
+        "type": "task_approve",
+        "earned": 80,
+        "spent": 0,
+        "count": 15
+      }
+    ]
+  }
+}
 ```
 
 ---
