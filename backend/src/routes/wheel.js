@@ -68,9 +68,9 @@ router.post('/spin/:userId', async (ctx) => {
   try {
     await client.query('BEGIN')
     
-    // 检查今日是否已转动
+    // 使用 FOR UPDATE 加锁，防止并发
     const existing = await client.query(
-      'SELECT * FROM user_daily_spins WHERE user_id = $1 AND spin_date = $2',
+      'SELECT * FROM user_daily_spins WHERE user_id = $1 AND spin_date = $2 FOR UPDATE',
       [userId, today]
     )
     
@@ -80,7 +80,7 @@ router.post('/spin/:userId', async (ctx) => {
       return
     }
     
-    // 获取奖品列表
+    // 获取奖品列表（转盘奖品不多，锁表影响可接受）
     const prizes = await client.query('SELECT * FROM spin_wheel_prizes')
     const prizeList = prizes.rows
     

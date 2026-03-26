@@ -228,7 +228,7 @@ const handleRegister = async () => {
 }
 :deep(.van-tabs__content) {
   background: white;
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   padding: 16px;
   min-height: 300px;
 }

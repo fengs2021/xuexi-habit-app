@@ -238,9 +238,10 @@ export async function getPointsHistory(userId, options = {}) {
   try {
     let whereClause = 'WHERE user_id = $1'
     const params = [userId]
+    let paramIdx = 2
     
     if (type) {
-      whereClause += ' AND type = $2'
+      whereClause += ` AND type = $${paramIdx++}`
       params.push(type)
     }
     
@@ -250,7 +251,7 @@ export async function getPointsHistory(userId, options = {}) {
       `SELECT * FROM point_logs 
        ${whereClause}
        ORDER BY created_at DESC
-       LIMIT $${params.indexOf(limit) + 1} OFFSET $${params.indexOf(offset) + 1}`,
+       LIMIT $${paramIdx++} OFFSET $${paramIdx}`,
       params
     )
     

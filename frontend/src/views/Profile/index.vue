@@ -496,7 +496,7 @@ onMounted(() => {
 }
 .level-card {
   margin-bottom: 12px;
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   background: linear-gradient(135deg, #FFF5F7 0%, #FFE4EC 100%);
   border: 2px solid #FFB6C1;
 }
@@ -509,7 +509,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #FF69B4, #FF85A2);
   color: #fff;
   padding: 4px 12px;
-  border-radius: 20px;
+  border-radius: var(--clay-radius-md);
   font-size: 14px;
   font-weight: bold;
 }
@@ -560,7 +560,7 @@ onMounted(() => {
   width: 70px;
   text-align: center;
   padding: 10px 6px;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   background: #f5f5f5;
   position: relative;
   transition: all 0.3s;
@@ -654,7 +654,7 @@ onMounted(() => {
 .sticker-item {
   width: 48px;
   height: 48px;
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -688,7 +688,7 @@ onMounted(() => {
   position: absolute;
   inset: -2px;
   border: 1px solid gold;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
 }
 .sticker-item.rarity-SSR {
   border: 3px solid gold;
@@ -704,7 +704,7 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   background: rgba(0,0,0,0.5);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -741,7 +741,7 @@ onMounted(() => {
   width: 80px;
   text-align: center;
   padding: 12px 8px;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   background: #f5f5f5;
   border: 2px solid transparent;
   cursor: pointer;
@@ -797,7 +797,7 @@ onMounted(() => {
 }
 .logout-btn {
   margin: 40px 16px;
-  border-radius: 22px;
+  border-radius: var(--clay-radius-md);
 }
 
 .theme-group :deep(.van-cell-group__title) {

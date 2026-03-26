@@ -223,7 +223,8 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #f5f5f5;
+  background: var(--theme-bg);
+  box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8);
   font-size: 13px;
   color: #999;
   position: relative;
@@ -253,7 +254,7 @@ onMounted(() => {
 
 .reward-preview {
   background: #FFF5F7;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   padding: 12px;
 }
 
@@ -273,7 +274,7 @@ onMounted(() => {
   font-size: 11px;
   padding: 4px 8px;
   background: #fff;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   color: #999;
 }
 

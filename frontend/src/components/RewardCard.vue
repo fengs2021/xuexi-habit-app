@@ -65,21 +65,38 @@ const handleExchange = () => {
 
 <style scoped>
 .reward-card {
-  background: #fff;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  padding: 16px;
+  background: var(--theme-bg);
+  border-radius: var(--clay-radius-lg);
+  margin-bottom: 18px;
+  padding: 22px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* 🧱 超强橡皮泥阴影 */
+  box-shadow: 
+    10px 10px 20px rgba(0, 0, 0, 0.12),
+    5px 5px 10px rgba(0, 0, 0, 0.08),
+    inset -5px -5px 12px rgba(255, 255, 255, 0.9);
+  transition: transform var(--press-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.reward-card:active {
+  transform: scale(0.95);
+  box-shadow: 
+    4px 4px 8px rgba(0, 0, 0, 0.18),
+    2px 2px 4px rgba(0, 0, 0, 0.1),
+    inset -3px -3px 7px rgba(255, 255, 255, 0.8);
 }
 .reward-info h3 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
+  margin: 0 0 8px 0;
+  font-size: 17px;
+  color: #444;
+  font-weight: 700;
 }
 .cost {
-  color: #ff976a;
-  font-weight: bold;
+  color: var(--theme-primary);
+  font-weight: 800;
   margin: 0;
+  font-size: 16px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 </style>

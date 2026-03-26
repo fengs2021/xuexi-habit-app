@@ -11,3 +11,7 @@ export function generateInviteCode() {
 export function getChildrenTaskProgress() {
   return request({ url: '/family/children-task-progress', method: 'GET' })
 }
+
+export function getFamilyChildren() {
+  return request({ url: '/family/children', method: 'GET' })
+}

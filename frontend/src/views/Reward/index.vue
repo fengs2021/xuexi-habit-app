@@ -367,7 +367,7 @@ onMounted(() => {
 /* 抽奖专区 */
 .lottery-section {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   padding: 16px;
   margin: 12px 16px;
   color: white;
@@ -401,7 +401,7 @@ onMounted(() => {
 .limited-sticker-card {
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   padding: 12px;
   text-align: center;
   min-width: 80px;
@@ -431,7 +431,7 @@ onMounted(() => {
 
 .lottery-controls {
   background: rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   padding: 12px;
 }
 
@@ -466,7 +466,7 @@ onMounted(() => {
 
 .sticker-display {
   background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   padding: 20px;
   margin-bottom: 16px;
 }
@@ -514,7 +514,7 @@ onMounted(() => {
 
 .exchange-sticker {
   background: #f5f5f5;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   padding: 12px;
   text-align: center;
   min-width: 70px;

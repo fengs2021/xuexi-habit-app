@@ -311,7 +311,7 @@ onBeforeRouteUpdate((to) => {
   margin-bottom: 10px;
   padding: 8px;
   background: rgba(255,255,255,0.7);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
 }
 
 .reward-item {
@@ -322,7 +322,7 @@ onBeforeRouteUpdate((to) => {
   padding: 8px;
   margin-bottom: 8px;
   background: white;
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -347,7 +347,7 @@ onBeforeRouteUpdate((to) => {
   gap: 12px;
   padding: 12px;
   background: white;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -378,7 +378,7 @@ onBeforeRouteUpdate((to) => {
   background: var(--theme-gradient);
   background-size: 200% 200%;
   color: #fff;
-  box-shadow: 0 4px 15px var(--theme-shadow);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15), inset 0 -2px 6px rgba(255, 255, 255, 0.3);
   
   overflow: hidden;
 }
@@ -409,7 +409,7 @@ onBeforeRouteUpdate((to) => {
 }
 .role-tag {
   padding: 2px 10px;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   font-size: 11px;
   font-weight: bold;
   width: fit-content;
@@ -433,7 +433,7 @@ onBeforeRouteUpdate((to) => {
   background: linear-gradient(135deg, #FFE082 0%, #FFD54F 100%);
   color: #5D3A1A;
   padding: 5px 12px;
-  border-radius: 18px;
+  border-radius: var(--clay-radius-md);
   font-size: 18px;
   font-weight: bold;
   white-space: nowrap;
@@ -456,7 +456,7 @@ onBeforeRouteUpdate((to) => {
   align-items: center;
   justify-content: center;
   background: rgba(255,255,255,0.95);
-  border-radius: 4px;
+  border-radius: var(--clay-radius-sm);
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .equipped-sticker.rarity-R {
@@ -504,7 +504,7 @@ onBeforeRouteUpdate((to) => {
 }
 .theme-tabbar {
   background: linear-gradient(180deg, var(--theme-bg) 0%, #FFFFFF 100%) !important;
-  box-shadow: 0 -2px 10px var(--theme-shadow, rgba(255, 105, 180, 0.15));
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1), inset 0 2px 4px rgba(255, 255, 255, 0.8);
 }
 .theme-tabbar :deep(.van-tabbar-item) {
   color: var(--theme-text, #C9A0A0) !important;
@@ -523,7 +523,7 @@ onBeforeRouteUpdate((to) => {
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--theme-gradient);
   color: white;
   padding: 10px 8px;
   border-radius: 20px;
@@ -531,7 +531,7 @@ onBeforeRouteUpdate((to) => {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.2), inset -2px -2px 6px rgba(255, 255, 255, 0.3);
   z-index: 100;
   cursor: pointer;
   animation: pulse 2s infinite;

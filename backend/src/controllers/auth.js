@@ -1,11 +1,7 @@
 
 // Helper to get user stars from users table (authoritative source)
-async function getUserStars(userId) {
-  const userResult = await pool.query(
-    'SELECT stars, total_stars FROM users WHERE id = $1',
-    [userId]
-  )
-  const user = userResult.rows[0] || { stars: 0, total_stars: 0 }
+// 复用已查询的用户数据，避免重复 DB 调用
+function getUserStars(user) {
   return {
     stars: parseInt(user.stars || 0),
     totalStars: parseInt(user.total_stars || 0),
@@ -201,14 +197,27 @@ export async function loginDevice(ctx) {
     return
   }
   try {
-    const queryId = deviceId || userId
-    const userResult = await pool.query(
-      'SELECT u.*, f.name as family_name FROM users u LEFT JOIN family f ON u.family_id = f.id WHERE u.id = $1',
-      [queryId]
-    )
-    if (userResult.rows.length === 0) {
-      ctx.body = error(2001, '用户不存在')
-      return
+    let userResult
+    if (deviceId) {
+      // 设备ID登录：通过 openid 查找孩子账号
+      userResult = await pool.query(
+        'SELECT u.*, f.name as family_name FROM users u LEFT JOIN family f ON u.family_id = f.id WHERE u.openid = $1 AND u.role = \'child\'',
+        [deviceId]
+      )
+      if (userResult.rows.length === 0) {
+        ctx.body = error(2001, '设备未注册，请先在设备上创建账号')
+        return
+      }
+    } else {
+      // 用户ID登录
+      userResult = await pool.query(
+        'SELECT u.*, f.name as family_name FROM users u LEFT JOIN family f ON u.family_id = f.id WHERE u.id = $1',
+        [userId]
+      )
+      if (userResult.rows.length === 0) {
+        ctx.body = error(2001, '用户不存在')
+        return
+      }
     }
     const user = userResult.rows[0]
     const { accessToken, refreshToken } = generateTokens(user)
@@ -277,7 +286,7 @@ export async function me(ctx) {
     const user = userResult.rows[0]
     
     // Get stars from summary table
-    const starInfo = await getUserStars(user.id)
+    const starInfo = getUserStars(user)
     
     ctx.body = success({
       id: user.id,
@@ -310,6 +319,7 @@ export async function logout(ctx) {
     await pool.query('DELETE FROM refresh_tokens WHERE user_id = $1', [decoded.id])
     ctx.body = success({})
   } catch (err) {
+    // token 无效或已过期，refresh_tokens 可能已清理，视为成功
     ctx.body = success({})
   }
 }

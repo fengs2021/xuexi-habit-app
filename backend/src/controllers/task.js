@@ -413,24 +413,37 @@ export async function approveTaskLog(ctx) {
     
     let stickerResult = null
     let newAchievements = []
+    let awardError = null
     
     if (approved) {
       const starsEarned = log.stars_earned || 1
       
       // 使用统一积分服务增加星星
-      await addPoints(log.user_id, starsEarned, PointType.TASK_APPROVE, {
+      const pointsResult = await addPoints(log.user_id, starsEarned, PointType.TASK_APPROVE, {
         sourceId: log.id,
         description: `完成任务获得 ${starsEarned} 星星`
       })
       
-      // 导入奖励函数并发放贴纸
+      // 积分发放失败则回滚
+      if (!pointsResult.success) {
+        await client.query('ROLLBACK')
+        ctx.body = error(3003, pointsResult.error || '积分发放失败')
+        return
+      }
+      
+      // 发放贴纸和成就奖励
       try {
         const rewardsModule = await import('./rewards.js')
         const { awardRandomSticker, checkAndAwardAchievements } = rewardsModule
         stickerResult = await awardRandomSticker(log.user_id, taskType || 'daily')
         newAchievements = await checkAndAwardAchievements(log.user_id)
       } catch (e) {
+        awardError = e
         console.error('Award error:', e)
+        // 奖励发放失败，但星星已发。回滚星星
+        await client.query('ROLLBACK')
+        ctx.body = error(500, '奖励发放失败，请重试')
+        return
       }
     }
     

@@ -30,7 +30,7 @@ defineExpose({ show })
   background: linear-gradient(135deg, #ff976a, #ff6b6b);
   color: #fff;
   padding: 12px 24px;
-  border-radius: 24px;
+  border-radius: var(--clay-radius-md);
   font-size: 20px;
   font-weight: bold;
   animation: fadeUp 0.8s ease-out;

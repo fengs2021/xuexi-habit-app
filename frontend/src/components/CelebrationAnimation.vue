@@ -150,7 +150,7 @@ watch(() => props.show, (val) => {
   width: var(--size);
   height: var(--size);
   background: var(--color);
-  border-radius: 2px;
+  border-radius: var(--clay-radius-sm);
   top: -20px;
   left: var(--left);
   animation: confettiFall var(--duration) var(--delay) ease-out forwards;
@@ -171,7 +171,7 @@ watch(() => props.show, (val) => {
 .celebration-text {
   background: linear-gradient(135deg, #FFF8DC 0%, #FFFACD 50%, #FFE4E1 100%);
   border: 4px solid #FFD700;
-  border-radius: 24px;
+  border-radius: var(--clay-radius-md);
   padding: 30px 50px;
   box-shadow: 0 10px 40px rgba(255, 105, 180, 0.4);
 }

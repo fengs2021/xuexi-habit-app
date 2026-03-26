@@ -531,7 +531,7 @@ const onRefresh = async () => {
   display: flex;
   justify-content: space-around;
   background: linear-gradient(135deg, #FFF5F7 0%, #FFE4EC 100%);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   padding: 12px 8px;
   margin-bottom: 12px;
 }
@@ -559,7 +559,7 @@ const onRefresh = async () => {
   margin-bottom: 12px;
   padding: 8px;
   background: #f5f5f5;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-md);
 }
 
 .comparison-text {
@@ -603,7 +603,7 @@ const onRefresh = async () => {
 
 .report-daily {
   background: #f5f5f5;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-md);
   padding: 8px;
 }
 
@@ -660,12 +660,12 @@ const onRefresh = async () => {
 
 .chart-scroll::-webkit-scrollbar-track {
   background: #f5f5f5;
-  border-radius: 3px;
+  border-radius: var(--clay-radius-sm);
 }
 
 .chart-scroll::-webkit-scrollbar-thumb {
   background: #1989fa;
-  border-radius: 3px;
+  border-radius: var(--clay-radius-sm);
 }
 
 .bar-chart {
@@ -688,7 +688,7 @@ const onRefresh = async () => {
   width: 100%;
   height: 140px;
   background: #f5f5f5;
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--clay-radius-sm) var(--clay-radius-sm) 0 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -697,7 +697,7 @@ const onRefresh = async () => {
 
 .bar-fill {
   width: 100%;
-  border-radius: 4px 4px 0 0;
+  border-radius: var(--clay-radius-sm) var(--clay-radius-sm) 0 0;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -818,7 +818,7 @@ const onRefresh = async () => {
 
 .popup-comparison {
   background: white;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-md);
   padding: 10px;
   margin-bottom: 16px;
   font-size: 13px;
@@ -827,7 +827,7 @@ const onRefresh = async () => {
 
 .popup-msg {
   background: white;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-md);
   padding: 10px;
   margin-bottom: 16px;
   font-size: 14px;
@@ -849,7 +849,7 @@ const onRefresh = async () => {
 
 .daily-list {
   background: white;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-md);
   padding: 8px;
 }
 
@@ -889,7 +889,7 @@ const onRefresh = async () => {
 
 .signin-badge {
   background: #FFF0F5;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   padding: 4px 8px;
   font-size: 11px;
   color: #FF69B4;
@@ -904,7 +904,7 @@ const onRefresh = async () => {
 
 .achievement-badge {
   background: linear-gradient(135deg, #FFD700, #FFA500);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   padding: 4px 10px;
   font-size: 12px;
   color: #fff;
@@ -913,7 +913,7 @@ const onRefresh = async () => {
 .sticker-badge {
   font-size: 20px;
   background: #f0f0f0;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-md);
   padding: 4px 8px;
 }
 

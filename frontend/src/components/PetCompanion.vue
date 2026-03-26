@@ -185,7 +185,7 @@ onMounted(async () => {
 .pet-image { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; }
 .pet-emoji { font-size: 60px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); transition: transform 0.3s; }
 .pet-body:hover .pet-emoji { transform: scale(1.1); }
-.pet-bubble { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: white; padding: 8px 14px; border-radius: 16px; box-shadow: 0 4px 15px rgba(255, 105, 180, 0.25); white-space: nowrap; z-index: 100; animation: bubblePop 0.3s ease; }
+.pet-bubble { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: white; padding: 8px 14px; border-radius: 20px; box-shadow: 0 4px 15px rgba(255, 105, 180, 0.25); white-space: nowrap; z-index: 100; animation: bubblePop 0.3s ease; }
 .pet-bubble::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); border: 8px solid transparent; border-top-color: white; border-bottom: 0; }
 
 .pet-name { margin-top: 8px; font-size: 14px; color: #FF69B4; font-weight: bold; }
@@ -196,7 +196,7 @@ onMounted(async () => {
 .pet-section-title { font-size: 13px; color: #999; margin-bottom: 10px; }
 .pet-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
 .image-grid { grid-template-columns: repeat(4, 1fr); }
-.pet-option { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: #f5f5f5; }
+.pet-option { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; border-radius: var(--clay-radius-sm); cursor: pointer; transition: all 0.2s; background: #f5f5f5; }
 .pet-option:hover { background: #FFE4EC; }
 .pet-option.selected { background: #FFB6C1; box-shadow: 0 2px 8px rgba(255, 105, 180, 0.4); }
 .pet-emoji-small { font-size: 24px; }

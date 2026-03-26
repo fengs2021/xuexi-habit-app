@@ -2,6 +2,15 @@ import Router from "@koa/router"
 import pool from "../config/database.js"
 import { success } from "../utils/response.js"
 
+function getLocalDateStr(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+
+
 const router = new Router({ prefix: "/api/statistics" })
 
 // 获取近30日每日星星统计（优化：使用单次查询）
@@ -14,8 +23,8 @@ router.get("/daily-stars/:childId", async (ctx) => {
     const startDate = new Date()
     startDate.setDate(endDate.getDate() - 29)
     
-    const startStr = startDate.toISOString().split('T')[0]
-    const endStr = endDate.toISOString().split('T')[0]
+    const startStr = getLocalDateStr(startDate)
+    const endStr = getLocalDateStr(endDate)
     
     // 单次查询获取所有日期的星星总和
     const result = await pool.query(`
@@ -34,7 +43,16 @@ router.get("/daily-stars/:childId", async (ctx) => {
     // 构建结果映射
     const starsByDate = {}
     for (const row of result.rows) {
-      const dateStr = new Date(row.completed_date).toISOString().split('T')[0]
+      // completed_date 可能是 Date 对象或字符串，统一格式化为 YYYY-MM-DD
+      let dateStr = row.completed_date
+      if (dateStr instanceof Date) {
+        const m = dateStr.getMonth() + 1
+        const d = dateStr.getDate()
+        dateStr = dateStr.getFullYear() + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0')
+      } else if (typeof dateStr === 'string' && dateStr.includes('T')) {
+        // ISO 格式字符串 "2026-03-24T16:00:00.000Z" 取日期部分
+        dateStr = dateStr.split('T')[0]
+      }
       starsByDate[dateStr] = parseInt(row.stars)
     }
     
@@ -46,7 +64,7 @@ router.get("/daily-stars/:childId", async (ctx) => {
       const month = date.getMonth() + 1
       const day = date.getDate()
       const dateStr = month + "月" + day + "日"
-      const dateStr2 = date.toISOString().split('T')[0]
+      const dateStr2 = getLocalDateStr(date)
       
       response.push({
         date: dateStr,
@@ -145,13 +163,6 @@ router.get("/new-rewards/:childId", async (ctx) => {
 })
 
 // 工具函数：获取本地日期字符串 YYYY-MM-DD
-function getLocalDateStr(date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
 // 获取本周统计数据（供Dashboard使用）
 router.get("/week-summary/:childId", async (ctx) => {
   const { childId } = ctx.params

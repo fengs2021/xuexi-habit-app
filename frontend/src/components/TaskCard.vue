@@ -4,9 +4,9 @@
       <div class="task-info">
         <h3>🌸 {{ task.title }}</h3>
         <div class="task-tags">
-          <van-tag v-if="task.frequency === 'daily'" color="#FF69B4" plain size="small">🌞 每日</van-tag>
-          <van-tag v-if="task.frequency === 'weekly'" color="#FF85A2" plain size="small">📅 每周</van-tag>
-          <van-tag v-if="task.frequency === 'once'" color="#FFB6C1" plain size="small">⭐ 一次性</van-tag>
+          <van-tag v-if="task.frequency === 'daily'" style="--tag-color: var(--theme-primary)" class="tag-theme" plain size="small">🌞 每日</van-tag>
+          <van-tag v-if="task.frequency === 'weekly'" style="--tag-color: var(--theme-secondary)" class="tag-theme" plain size="small">📅 每周</van-tag>
+          <van-tag v-if="task.frequency === 'once'" style="--tag-color: #FFB6C1" class="tag-theme" plain size="small">⭐ 一次性</van-tag>
         </div>
       </div>
       <div class="task-actions">
@@ -96,21 +96,32 @@ const complete = async () => {
 
 <style scoped>
 .task-card {
-  background: linear-gradient(135deg, #FFFFFF 0%, #FFF5F7 100%);
-  border-radius: 20px;
-  margin: 10px 16px;
-  padding: 16px;
+  background: var(--theme-bg);
+  border-radius: var(--clay-radius-lg);
+  margin: 14px 16px;
+  padding: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 3px 15px rgba(255, 105, 180, 0.15);
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
+  /* 🧱 超强橡皮泥阴影 - 多层效果 */
+  box-shadow: 
+    12px 12px 24px rgba(0, 0, 0, 0.12),
+    6px 6px 12px rgba(0, 0, 0, 0.08),
+    inset -6px -6px 14px rgba(255, 255, 255, 0.9);
+  border: 3px solid transparent;
+  transition: transform var(--press-duration) cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow var(--press-duration) var(--press-timing);
+  cursor: pointer;
 }
 .task-card:hover {
-  border-color: #FFB6C1;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(255, 105, 180, 0.25);
+  border-color: var(--theme-primary);
+}
+.task-card:active {
+  transform: scale(0.94);
+  box-shadow: 
+    4px 4px 8px rgba(0, 0, 0, 0.18),
+    2px 2px 4px rgba(0, 0, 0, 0.1),
+    inset -3px -3px 8px rgba(255, 255, 255, 0.8);
 }
 .task-content {
   flex: 1;
@@ -119,51 +130,64 @@ const complete = async () => {
   align-items: center;
 }
 .task-info h3 {
-  margin: 0 0 8px 0;
-  font-size: 15px;
-  color: #333;
-  font-weight: bold;
+  margin: 0 0 12px 0;
+  font-size: 17px;
+  color: #444;
+  font-weight: 700;
 }
 .task-tags {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 .star-reward {
-  transition: all 0.3s ease;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--theme-primary);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  margin-right: 14px;
 }
 .star-reward.star-negative {
   color: #ee0a24;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
-.star-reward {
-  font-size: 17px;
-  font-weight: bold;
-  color: #FF69B4;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  margin-right: 10px;
-}
-.btn-complete {
-  background: linear-gradient(135deg, #FF69B4 0%, #FF85A2 100%) !important;
-  border: none !important;
-  color: #fff !important;
-  font-weight: bold;
-  border-radius: 22px !important;
-  box-shadow: 0 3px 10px rgba(255, 105, 180, 0.4);
-}
-.btn-complete:active {
-  transform: scale(0.95);
-}
-.btn-done {
-  background: linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 100%) !important;
-  border: none !important;
-  color: #fff !important;
-  border-radius: 22px !important;
-}
+.btn-complete,
+.btn-done,
 .btn-pending {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+  border-radius: 50px !important;  /* 超圆润药丸形 */
+  font-weight: 700;
+  min-width: 110px;
+  height: 42px;
+  /* 🧱 柔和粉色渐变 - 不刺眼 */
+  background: linear-gradient(145deg, #FFB6C1 0%, #FF91A4 50%, #FF7F9A 100%) !important;
   border: none !important;
+  /* 🧱 柔和阴影 */
+  box-shadow: 
+    6px 6px 14px rgba(255, 127, 154, 0.35),
+    3px 3px 8px rgba(255, 127, 154, 0.25),
+    inset 0 2px 4px rgba(255, 255, 255, 0.5) !important;
+  transition: transform var(--press-duration) cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  padding: 0 20px !important;
   color: #fff !important;
-  border-radius: 22px !important;
+}
+.btn-complete:active,
+.btn-done:active,
+.btn-pending:active {
+  transform: scale(var(--press-scale)) !important;
+  background: linear-gradient(145deg, #FF9AAF 0%, #FF7F9A 100%) !important;
+  box-shadow: 
+    3px 3px 8px rgba(255, 127, 154, 0.4),
+    1px 1px 4px rgba(255, 127, 154, 0.3),
+    inset 0 2px 6px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 主题标签 */
+.tag-theme {
+  --tag-color: var(--theme-primary);
+  color: var(--tag-color) !important;
+  border-color: var(--tag-color) !important;
+  font-weight: 600;
+  border-radius: var(--clay-radius-sm) !important;
+  padding: 4px 12px !important;
 }
 </style>

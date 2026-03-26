@@ -389,7 +389,7 @@ onMounted(() => {
 }
 .completed-task-card {
   background: #fff;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   margin: 8px 16px;
   padding: 12px 16px;
   display: flex;

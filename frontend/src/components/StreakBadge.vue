@@ -35,7 +35,7 @@ const fireEmoji = computed(() => {
   gap: 2px;
   background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   font-size: 12px;
   color: white;
   font-weight: bold;

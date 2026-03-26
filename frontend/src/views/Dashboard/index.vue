@@ -256,10 +256,13 @@ onMounted(async () => {
 }
 .target-card {
   margin-bottom: 12px;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(255, 105, 180, 0.2);
-  background: linear-gradient(135deg, #FFF5F7 0%, #FFF0F5 100%);
-  border: 2px solid #FFB6C1;
+  border-radius: var(--clay-radius-lg);
+  box-shadow: 
+    8px 8px 16px rgba(0, 0, 0, 0.1),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.8);
+  background: var(--theme-bg);
+  border: 2px solid var(--theme-primary);
+  opacity: 0.9;
 }
 .target-title {
   display: flex;
@@ -269,32 +272,33 @@ onMounted(async () => {
 .target-name {
   font-size: 15px;
   font-weight: bold;
-  color: #FF69B4;
+  color: var(--theme-primary);
 }
 .progress-wrapper {
   padding: 8px 0;
 }
 .pink-progress {
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   overflow: hidden;
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.1);
 }
 .progress-text {
   font-size: 15px;
-  color: #FF69B4;
+  color: var(--theme-primary);
   text-align: center;
   margin-top: 8px;
   font-weight: bold;
 }
 .encourage-text {
   font-size: 14px;
-  color: #FF85A2;
+  color: var(--theme-primary);
   text-align: center;
   margin-top: 8px;
   font-weight: 500;
+  opacity: 0.8;
 }
 .encourage-text.bounce {
   animation: celebrateBounce 0.6s ease infinite;
-  color: #FF69B4;
   font-size: 16px;
 }
 @keyframes celebrateBounce {
@@ -302,7 +306,7 @@ onMounted(async () => {
   50% { transform: scale(1.1); }
 }
 .task-group :deep(.van-cell-group__title) {
-  color: #FF69B4;
+  color: var(--theme-primary);
   font-size: 15px;
   font-weight: bold;
 }

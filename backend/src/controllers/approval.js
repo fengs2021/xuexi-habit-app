@@ -73,7 +73,7 @@ export async function getApprovalHistory(ctx) {
   
   try {
     const taskResult = await pool.query(
-      `SELECT tl.id, tl.user_id, tl.task_id, tl.stars_earned, tl.approval_status, tl.created_at,
+      `SELECT tl.id, tl.user_id, tl.task_id, tl.action, tl.stars_earned, tl.approval_status, tl.created_at,
               t.title as task_title,
               u.nickname as user_nickname, 'task' as type
        FROM task_logs tl

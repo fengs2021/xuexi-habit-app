@@ -1,3 +1,36 @@
+/* ========================================
+   超强 Claymorphism 橡皮泥风格
+   ======================================== */
+:root {
+  /* 主题色调 (会被 useTheme.js 动态覆盖) */
+  --theme-primary: #FF69B4;
+  --theme-secondary: #FFB6C1;
+  --theme-gradient: linear-gradient(145deg, #FFD1DC 0%, #FFB6C1 30%, #FF69B4 70%, #FF85A2 100%);
+  --theme-shadow: rgba(255, 105, 180, 0.5);
+  --theme-bg: #FFF0F3;
+  --theme-text: #C9A0A0;
+  
+  /* 🧱 超强橡皮泥圆角 - 更大更圆润 */
+  --clay-radius-lg: 48px;    /* 大圆角 - 卡片 */
+  --clay-radius-md: 36px;    /* 中圆角 - 按钮 */
+  --clay-radius-sm: 24px;    /* 小圆角 - 小元素 */
+  
+  /* 🖼️ 多层阴影 - 外阴影 + 内阴影 = 3D 凸起效果 */
+  --clay-shadow-1: 12px 12px 24px rgba(0, 0, 0, 0.18);   /* 外阴影 - 深 */
+  --clay-shadow-2: 6px 6px 12px rgba(0, 0, 0, 0.12);     /* 外阴影 - 浅 */
+  --clay-shadow-inner-light: inset -6px -6px 14px rgba(255, 255, 255, 0.9);  /* 内阴影 - 高光 */
+  --clay-shadow-inner-dark: inset 4px 4px 10px rgba(0, 0, 0, 0.08);         /* 内阴影 - 暗部 */
+  
+  /* 🎮 按压动画 - 更夸张 */
+  --press-scale: 0.92;
+  --press-duration: 120ms;
+  --press-timing: cubic-bezier(0.34, 1.56, 0.64, 1);  /* 弹性曲线 */
+  
+  /* 🎈 浮动动画 */
+  --float-duration: 4s;
+  --float-amplitude: 12px;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -7,6 +40,227 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: #f5f5f5;
+  background-color: var(--theme-bg);
   color: #333;
 }
+
+/* ========================================
+   🧱 超强 Claymorphism 组件类
+   ======================================== */
+
+/* 粘土卡片 - 主容器 - 多层阴影创造立体感 */
+.clay-card {
+  background: var(--theme-bg);
+  border-radius: var(--clay-radius-lg);
+  box-shadow: 
+    var(--clay-shadow-1),
+    var(--clay-shadow-2),
+    var(--clay-shadow-inner-light);
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--press-duration) var(--press-timing),
+              box-shadow var(--press-duration) var(--press-timing);
+  
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 
+      6px 6px 12px rgba(0, 0, 0, 0.22),
+      3px 3px 6px rgba(0, 0, 0, 0.15),
+      var(--clay-shadow-inner-light);
+  }
+}
+
+/* 粘土按钮 - 最夸张的效果 */
+.clay-btn {
+  background: var(--theme-gradient);
+  border-radius: var(--clay-radius-md);
+  box-shadow: 
+    var(--clay-shadow-1),
+    var(--clay-shadow-2),
+    var(--clay-shadow-inner-light);
+  border: none;
+  cursor: pointer;
+  transition: transform var(--press-duration) var(--press-timing),
+              box-shadow var(--press-duration) var(--press-timing);
+  color: white;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  padding: 14px 28px;
+  
+  &:active {
+    transform: scale(var(--press-scale));
+    box-shadow: 
+      4px 4px 8px rgba(0, 0, 0, 0.25),
+      2px 2px 4px rgba(0, 0, 0, 0.15),
+      inset -3px -3px 8px rgba(255, 255, 255, 0.4),
+      inset 2px 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* 粘土输入框 */
+.clay-input {
+  background: var(--theme-bg);
+  border-radius: var(--clay-radius-sm);
+  box-shadow: 
+    var(--clay-shadow-inner-light),
+    var(--clay-shadow-inner-dark);
+  border: 3px solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  padding: 12px 16px;
+  
+  &:focus {
+    border-color: var(--theme-primary);
+    outline: none;
+    box-shadow: 
+      var(--clay-shadow-inner-light),
+      var(--clay-shadow-inner-dark),
+      0 0 0 4px rgba(255, 105, 180, 0.3);
+  }
+}
+
+/* 浮动动画 - 更慢更明显 */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(calc(var(--float-amplitude) * -1)) rotate(2deg); }
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.02); }
+}
+
+.float-anim {
+  animation: float var(--float-duration) ease-in-out infinite;
+}
+
+.float-anim-slow {
+  animation: floatSlow 5s ease-in-out infinite;
+}
+
+/* 脉冲动画 - 吸引注意 */
+@keyframes clayPulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: var(--clay-shadow-1), var(--clay-shadow-2), var(--clay-shadow-inner-light);
+  }
+  50% { 
+    transform: scale(1.02);
+    box-shadow: 16px 16px 32px rgba(0, 0, 0, 0.22), 8px 8px 16px rgba(0, 0, 0, 0.15), var(--clay-shadow-inner-light);
+  }
+}
+
+.clay-pulse {
+  animation: clayPulse 2s ease-in-out infinite;
+}
+
+/* 主题色调类 */
+.text-theme { color: var(--theme-primary); }
+.bg-theme { background: var(--theme-gradient); }
+.border-theme { border-color: var(--theme-primary); }
+.shadow-theme { box-shadow: var(--clay-shadow-1), var(--clay-shadow-2), var(--clay-shadow-inner-light); }
+
+/* ========================================
+   🎨 Vant 组件全局圆角修复
+   ======================================== */
+
+/* 按钮圆角 */
+:deep(.van-button) {
+  border-radius: var(--clay-radius-md) !important;
+}
+
+/* 单元格圆角 */
+:deep(.van-cell) {
+  border-radius: var(--clay-radius-sm);
+}
+
+/* 单元格组圆角 */
+:deep(.van-cell-group--inset) {
+  border-radius: var(--clay-radius-lg) !important;
+  overflow: hidden;
+}
+
+/* 弹窗圆角 */
+:deep(.van-popup) {
+  border-radius: var(--clay-radius-lg) !important;
+}
+
+/* 对话框圆角 */
+:deep(.van-dialog) {
+  border-radius: var(--clay-radius-lg) !important;
+}
+
+/* 标签圆角 */
+:deep(.van-tag) {
+  border-radius: var(--clay-radius-sm) !important;
+}
+
+/* 输入框圆角 */
+:deep(.van-field__control) {
+  border-radius: var(--clay-radius-sm) !important;
+}
+
+/* 进度条圆角 */
+:deep(.van-progress__pivot) {
+  border-radius: var(--clay-radius-sm) !important;
+}
+
+/* 切换栏圆角 */
+:deep(.van-tabs__wrap) {
+  border-radius: var(--clay-radius-md) !important;
+}
+
+/* 滑块圆角 */
+:deep(.van-slider__bar) {
+  border-radius: var(--clay-radius-sm) !important;
+}
+
+/* 下拉菜单圆角 */
+:deep(.van-popper) {
+  border-radius: var(--clay-radius-md) !important;
+}
+
+/* 选择器圆角 */
+:deep(.van-picker) {
+  border-radius: var(--clay-radius-lg) var(--clay-radius-lg) 0 0 !important;
+}
+
+/* 操作表圆角 */
+:deep(.van-action-sheet) {
+  border-radius: var(--clay-radius-lg) var(--clay-radius-lg) 0 0 !important;
+}
+
+/* 通知圆角 */
+:deep(.van-notify) {
+  border-radius: var(--clay-radius-sm) !important;
+}
+
+/* 抽屉圆角 */
+:deep(.van-drawer) {
+  border-radius: var(--clay-radius-lg) 0 0 var(--clay-radius-lg) !important;
+}
+
+/* 图片验证码圆角 */
+:deep(.van-image) {
+  border-radius: var(--clay-radius-sm) !important;
+}
+
+/* 步进器圆角 */
+:deep(.van-stepper__input) {
+  border-radius: var(--clay-radius-sm) !important;
+}
+
+/* 复选框圆角 */
+:deep(.van-checkbox__label) {
+  border-radius: var(--clay-radius-sm) !important;
+}
+
+/* 单选框圆角 */
+:deep(.van-radio__label) {
+  border-radius: var(--clay-radius-sm) !important;
+}
+
+/* 评分圆角 */
+:deep(.van-rate__icon) {
+  border-radius: 4px !important;
+}
+

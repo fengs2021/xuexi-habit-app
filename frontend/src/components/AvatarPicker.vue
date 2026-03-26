@@ -60,7 +60,7 @@ const selectAvatar = (avatar) => {
   align-items: center;
   cursor: pointer;
   padding: 8px;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-sm);
   transition: all 0.2s;
 }
 

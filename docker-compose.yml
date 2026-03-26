@@ -39,6 +39,7 @@ services:
     environment:
       - POSTGRES_DB=xuexi
       - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - TZ=Asia/Shanghai
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./docs/database.sql:/docker-entrypoint-initdb.d/init.sql

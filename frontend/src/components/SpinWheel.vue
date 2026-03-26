@@ -146,13 +146,16 @@ function close() {
 }
 
 .spin-wheel-container {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 20px;
-  padding: 20px;
+  background: var(--theme-gradient);
+  border-radius: var(--clay-radius-lg);
+  padding: 24px;
   text-align: center;
   color: white;
   max-width: 350px;
   width: 90%;
+  box-shadow: 
+    12px 12px 24px rgba(0, 0, 0, 0.25),
+    inset -4px -4px 10px rgba(255, 255, 255, 0.3);
 }
 
 .spin-wheel-title {
@@ -218,16 +221,18 @@ function close() {
 }
 
 .spin-btn {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  background: var(--theme-gradient);
   border: none;
-  padding: 12px 40px;
-  border-radius: 25px;
+  padding: 14px 40px;
+  border-radius: var(--clay-radius-md);
   font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: white;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-  transition: transform 0.2s;
+  box-shadow: 
+    4px 4px 12px rgba(0, 0, 0, 0.25),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.3);
+  transition: transform var(--press-duration) var(--press-timing);
   min-width: 150px;
 }
 
@@ -238,7 +243,7 @@ function close() {
 }
 
 .spin-btn:not(:disabled):active {
-  transform: scale(0.95);
+  transform: scale(var(--press-scale));
 }
 
 .result-display {
@@ -272,7 +277,7 @@ function close() {
   background: white;
   border: none;
   padding: 10px 30px;
-  border-radius: 20px;
+  border-radius: var(--clay-radius-md);
   font-size: 16px;
   cursor: pointer;
 }
