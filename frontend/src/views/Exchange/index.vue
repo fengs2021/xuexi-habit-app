@@ -96,11 +96,25 @@
       </van-tab>
 
       <van-tab title="积分明细">
-        <!-- 积分汇总 -->
-        <van-cell-group inset title="积分概览" v-if="pointSummary">
-          <van-cell title="当前余额" :value="pointSummary.currentBalance + ' ★'" />
-          <van-cell title="累计获得" :value="'+' + pointSummary.totalEarned + ' ★'" value-class="earn-text" />
-          <van-cell title="累计消费" :value="'-' + pointSummary.totalSpent + ' ★'" value-class="spend-text" />
+        <!-- 孩子选择器 -->
+        <van-cell-group inset title="积分概览" v-if="children.length > 0">
+          <van-cell title="选择孩子">
+            <template #value>
+              <van-dropdown-menu>
+                <van-dropdown-item 
+                  v-model="selectedChildId" 
+                  :options="children" 
+                  @change="onChildChange"
+                />
+              </van-dropdown-menu>
+            </template>
+          </van-cell>
+          <van-cell title="当前余额" :value="(pointSummary?.currentBalance || 0) + ' ★'" />
+          <van-cell title="累计获得" :value="'+' + (pointSummary?.totalEarned || 0) + ' ★'" value-class="earn-text" />
+          <van-cell title="累计消费" :value="'-' + (pointSummary?.totalSpent || 0) + ' ★'" value-class="spend-text" />
+        </van-cell-group>
+        <van-cell-group inset v-if="children.length === 0 && !pointLogsLoading">
+          <van-empty description="暂无孩子数据" />
         </van-cell-group>
 
         <!-- 积分明细列表 -->
@@ -185,7 +199,8 @@ const loadChildren = async () => {
       value: c.id
     }))
     if (children.value.length > 0) {
-      loadPointData() // 加载所有孩子的数据
+      selectedChildId.value = children.value[0].value
+      loadPointData() // 加载第一个孩子的数据
     }
   } catch (error) {
     console.error('[DEBUG] Load children error:', error)
@@ -193,49 +208,43 @@ const loadChildren = async () => {
 }
 
 const loadPointData = async () => {
-  console.log('[DEBUG] loadPointData called, children.length:', children.value.length)
+  console.log('[DEBUG] loadPointData called, children.length:', children.value.length, 'selectedChildId:', selectedChildId.value)
   if (children.value.length === 0) {
     console.log('[DEBUG] children is empty, returning early')
     return
   }
   
+  // 如果没有选中孩子，默认选中第一个
+  if (!selectedChildId.value && children.value.length > 0) {
+    selectedChildId.value = children.value[0].value
+    console.log('[DEBUG] Auto selected first child:', selectedChildId.value)
+  }
+  
   pointLogsLoading.value = true
   try {
-    // 并行加载所有孩子的积分明细
-    const allLogs = []
-    const allSummary = { totalEarned: 0, totalSpent: 0, currentBalance: 0 }
+    // 只加载选中孩子的数据
+    const logsRes = await getChildPointLogs(selectedChildId.value)
+    const summaryRes = await getChildPointSummary(selectedChildId.value)
     
-    for (const child of children.value) {
-      try {
-        console.log('[DEBUG] Loading logs for child:', child.text, child.value)
-        const [logsRes, summaryRes] = await Promise.all([
-          getChildPointLogs(child.value),
-          getChildPointSummary(child.value)
-        ])
-        console.log('[DEBUG] logsRes:', logsRes ? 'has data' : 'null/undefined', 'items:', logsRes?.items?.length)
-        // 为每条记录添加孩子名字
-        const logsWithName = (logsRes?.items || []).map(log => ({
-          ...log,
-          childNickname: child.text
-        }))
-        allLogs.push(...logsWithName)
-        
-        if (summaryRes) {
-          allSummary.totalEarned += summaryRes.totalEarned || 0
-          allSummary.totalSpent += summaryRes.totalSpent || 0
-          allSummary.currentBalance += summaryRes.currentBalance || 0
-        }
-      } catch (e) {
-        console.error('[DEBUG] Error loading data for child:', child.text, e)
-      }
-    }
+    // 获取选中孩子的昵称
+    const selectedChild = children.value.find(c => c.value === selectedChildId.value)
+    const childName = selectedChild ? selectedChild.text : '未知'
     
-    console.log('[DEBUG] allLogs before sort:', allLogs.length)
+    // 为每条记录添加孩子名字
+    const logsWithName = (logsRes?.items || []).map(log => ({
+      ...log,
+      childNickname: childName
+    }))
+    
     // 按时间排序（最新的在前）
-    allLogs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    logsWithName.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     
-    pointLogs.value = allLogs
-    pointSummary.value = allSummary
+    pointLogs.value = logsWithName
+    pointSummary.value = {
+      currentBalance: summaryRes?.currentBalance || 0,
+      totalEarned: summaryRes?.totalEarned || 0,
+      totalSpent: summaryRes?.totalSpent || 0
+    }
     console.log('[DEBUG] pointLogs set, length:', pointLogs.value.length)
   } catch (error) {
     console.error('[DEBUG] loadPointData error:', error)
@@ -246,7 +255,7 @@ const loadPointData = async () => {
 }
 
 const onChildChange = (value) => {
-  selectedChildId.value = value
+  console.log('[DEBUG] onChildChange:', value)
   loadPointData()
 }
 
