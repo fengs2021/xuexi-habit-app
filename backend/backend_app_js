@@ -1,0 +1,64 @@
+import Koa from 'koa'
+import Router from 'koa-router'
+import cors from '@koa/cors'
+import bodyParser from 'koa-bodyparser'
+import dotenv from 'dotenv'
+
+// 路由
+import authRoutes from './routes/auth.js'
+import familyRoutes from './routes/families.js'
+import goalRoutes from './routes/goals.js'
+import taskRoutes from './routes/tasks.js'
+import rewardRoutes from './routes/rewards.js'
+import exchangeRoutes from './routes/exchanges.js'
+import achievementRoutes from './routes/achievements.js'
+import logRoutes from './routes/logs.js'
+
+// 加载环境变量
+dotenv.config()
+
+const app = new Koa()
+const PORT = process.env.PORT || 8080
+
+// 中间件
+app.use(cors())
+app.use(bodyParser())
+
+// 路由
+const router = new Router()
+
+// 健康检查
+router.get('/api/health', (ctx) => {
+  ctx.body = { code: 0, message: 'ok', timestamp: new Date().toISOString() }
+})
+
+// 注册子路由
+app.use(router.routes())
+app.use(authRoutes.routes())
+app.use(familyRoutes.routes())
+app.use(goalRoutes.routes())
+app.use(taskRoutes.routes())
+app.use(rewardRoutes.routes())
+app.use(exchangeRoutes.routes())
+app.use(achievementRoutes.routes())
+app.use(logRoutes.routes())
+
+// 错误处理
+app.use(async (ctx, next) => {
+  try {
+    await next()
+  } catch (err) {
+    console.error('Server error:', err)
+    ctx.status = err.status || 500
+    ctx.body = {
+      code: 500,
+      message: err.message || 'Internal Server Error',
+      data: null
+    }
+  }
+})
+
+// 启动服务器
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`)
+})

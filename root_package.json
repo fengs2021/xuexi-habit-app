@@ -1,0 +1,28 @@
+{
+  "name": "xuexi-habit-app",
+  "version": "1.0.0",
+  "description": "习惯养成 - 儿童任务奖励系统 (亲子互动版)",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "keywords": [
+    "habit",
+    "children",
+    "parenting",
+    "vue3",
+    "koa2",
+    "postgresql"
+  ],
+  "author": "fengs",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
