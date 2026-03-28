@@ -308,7 +308,7 @@ router.get('/exchange-options/:userId', async (ctx) => {
     let stickers = []
     if (stickerIds.length > 0) {
       const result = await pool.query(
-        `SELECT id, name, emoji, rarity, description FROM stickers WHERE id = ANY($1)`,
+        `SELECT id, name, emoji, rarity, description FROM stickers WHERE rarity != 'SSR' AND id = ANY($1)`,
         [stickerIds]
       )
       stickers = result.rows
