@@ -93,7 +93,7 @@
             class="draw-btn"
             @click="handleDraw"
             :loading="drawing"
-            :disabled="lotteryProgress.drawCount >= lotteryProgress.guaranteeCount && lotteryProgress.guaranteeExchangeUsed"
+            
           >
             🎲 消耗5★抽取贴纸
           </van-button>
