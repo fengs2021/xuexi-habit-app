@@ -16,10 +16,10 @@
         <div class="picker-title">🎀 选择你的宠物</div>
         
         <!-- 卡通宠物 -->
-        <div v-if="imagePets.length > 0" class="pet-section">
+        <div v-if="unlockedImagePets.length > 0" class="pet-section">
           <div class="pet-section-title">🌟 卡通宠物</div>
           <div class="pet-grid image-grid">
-            <div v-for="pet in imagePets" :key="pet.id" class="pet-option pet-image-option" :class="{ 'selected': currentPet === pet.filename }" @click="selectPet(pet.filename)">
+            <div v-for="pet in unlockedImagePets" :key="pet.id" class="pet-option pet-image-option" :class="{ 'selected': currentPet === pet.filename }" @click="selectPet(pet.filename)">
               <img :src="pet.url" class="pet-thumb" />
               <div class="pet-thumb-name">{{ pet.name }}</div>
             </div>
@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { getDisplaySettings, updateDisplaySettings } from '@/api/display'
 import { getAvatars } from '@/api/avatar'
@@ -59,6 +59,8 @@ const showPicker = ref(false)
 const currentPet = ref('😊')
 const pressTimer = ref(null)
 const imagePets = ref([])
+// 只显示已解锁的头像（locked=false）
+const unlockedImagePets = computed(() => imagePets.value.filter(p => !p.locked))
 
 const petOptions = [
   '😊', '😍', '🥰', '😎', '🤩', '😇', '🤗', '😺', '😸', '😻',
@@ -81,7 +83,15 @@ const petNames = {
   // 卡通宠物名称
   'peppa.jpg': '小猪佩奇', 'chase.jpg': '汪汪队Chase', 'marshall.jpg': '汪汪队Marshall',
   'anna.jpg': '安娜公主', 'elsa.jpg': '艾莎公主', 'belle.jpg': '贝儿公主', 'cinderella.jpg': '灰姑娘',
-  'moana.jpg': '莫阿娜', 'tiana.jpg': '蒂安娜公主', 'rapunzel.jpg': '长发公主'
+  'moana.jpg': '莫阿娜', 'tiana.jpg': '蒂安娜公主', 'rapunzel.jpg': '长发公主',
+  'ariel.jpg': '小美人鱼-Ariel', 'snow_white.jpg': '白雪公主', 'jasmine.jpg': '茉莉公主',
+  'mickey.jpg': '米老鼠', 'donald.jpg': '唐老鸭', 'mulan.jpg': '花木兰',
+  'tinkerbell.jpg': '小叮当-TinkerBell', 'stitch.jpg': '史迪奇-Stitch',
+  // 奇妙萌可
+  'axing_heart.jpg': '爱心萌可', 'zhengzheng.jpg': '正正萌可', 'yaoyao.jpg': '妖妖萌可',
+  'changchang.jpg': '唱唱萌可', 'gege.jpg': '歌谣萌可', 'yongqi.jpg': '勇气萌可',
+  'panpan.jpg': '盼盼萌可', 'shanshan.jpg': '闪闪萌可', 'paopao.jpg': '泡泡萌可',
+  'shenqi.jpg': '神奇萌可', 'shanguang.jpg': '银光萌可'
 }
 
 const messages = [
@@ -153,16 +163,14 @@ const selectPet = async (pet) => {
 }
 
 // 加载宠物列表
-onMounted(async () => {
-  // 加载卡通宠物
+const loadPetData = async () => {
+  if (!userStore.userInfo?.id) return
   try {
-    const res = await getAvatars()
-    imagePets.value = res || []
+    const avatars = await getAvatars(userStore.userInfo.id)
+    imagePets.value = avatars || []
   } catch (e) {
     console.error('Failed to load avatars:', e)
   }
-  
-  // 加载已选宠物
   try {
     const settings = await getDisplaySettings(userStore.userInfo.id)
     if (settings?.pet) {
@@ -171,6 +179,20 @@ onMounted(async () => {
   } catch (e) {
     console.error('Failed to load pet settings:', e)
   }
+}
+
+// 监听 userInfo 可用后加载数据
+watch(() => userStore.userInfo?.id, (newId) => {
+  if (newId) loadPetData()
+}, { immediate: true })
+
+// 每次打开 picker 都刷新头像列表
+watch(() => showPicker.value, (val) => {
+  if (val) loadPetData()
+})
+
+onMounted(async () => {
+  // 已通过 watch immediate 加载数据
 })
 </script>
 

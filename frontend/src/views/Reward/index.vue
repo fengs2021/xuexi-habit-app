@@ -56,11 +56,12 @@
             v-for="sticker in weeklyInfo.limitedStickers" 
             :key="sticker.id" 
             class="limited-sticker-card"
-            :class="'rarity-' + sticker.rarity"
+            :class="'rarity-' + sticker.rarity + (sticker.owned ? ' sticker-owned' : '')"
           >
             <span class="emoji">{{ sticker.emoji }}</span>
             <span class="name">{{ sticker.name }}</span>
-            <van-tag :type="getRarityTagType(sticker.rarity)" size="small">{{ sticker.rarity }}</van-tag>
+            <van-tag v-if="sticker.owned" type="success" size="small">已获得</van-tag>
+            <van-tag v-else :type="getRarityTagType(sticker.rarity)" size="small">{{ sticker.rarity }}</van-tag>
           </div>
         </div>
         <van-empty v-else description="本周无限定贴纸" />
@@ -70,7 +71,7 @@
           <div class="progress-info">
             <span class="draw-count">已抽 {{ lotteryProgress.drawCount }} / {{ lotteryProgress.guaranteeCount }} 次</span>
             <van-progress 
-              :percentage="(lotteryProgress.drawCount / lotteryProgress.guaranteeCount) * 100" 
+              :percentage="Math.min(100, (lotteryProgress.drawCount / lotteryProgress.guaranteeCount) * 100)" 
               :show-pivot="true"
               color="#7232dd"
             />
@@ -108,7 +109,55 @@
           </van-button>
         </div>
       </div>
-      
+
+      <!-- 头像抽奖专区 -->
+      <div class="lottery-section avatar-section">
+        <div class="section-header">
+          <span class="title">🖼️ 头像抽奖</span>
+          <span class="time-range">{{ weeklyAvatarInfo.weekStart }} ~ {{ weeklyAvatarInfo.weekEnd }}</span>
+        </div>
+
+        <!-- 本周限定头像展示 -->
+        <div class="limited-avatars" v-if="weeklyAvatarInfo.limitedAvatars?.length > 0">
+          <div
+            v-for="avatar in weeklyAvatarInfo.limitedAvatars"
+            :key="avatar.id"
+            class="limited-avatar-card"
+          >
+            <img :src="avatar.url" class="avatar-img" />
+            <span class="name">{{ avatar.name }}</span>
+            <van-tag v-if="avatar.owned" type="success" size="small">已获得</van-tag>
+            <van-tag v-else type="danger" size="small">本周限定</van-tag>
+          </div>
+        </div>
+
+        <!-- 头像抽奖进度 -->
+        <div class="lottery-controls">
+          <div class="progress-info">
+            <span class="draw-count">已抽 {{ avatarProgress.drawCount }} / {{ avatarProgress.guaranteeCount }} 次</span>
+            <van-progress
+              :percentage="avatarProgress.guaranteeCount > 0 ? Math.min(100, (avatarProgress.drawCount / avatarProgress.guaranteeCount) * 100) : 0"
+              :show-pivot="true"
+              color="#ff69b4"
+            />
+            <span class="tip">
+              再抽 {{ Math.max(0, avatarProgress.guaranteeCount - avatarProgress.drawCount) }} 次可保底兑换头像
+            </span>
+          </div>
+
+          <van-button
+            type="primary"
+            size="large"
+            round
+            class="draw-btn"
+            @click="handleDrawAvatar"
+            :loading="avatarDrawing"
+          >
+            🖼️ 消耗10★抽取头像
+          </van-button>
+        </div>
+      </div>
+
       <!-- 奖励列表 -->
       <RewardCard
         v-for="reward in rewards"
@@ -132,7 +181,7 @@
     </van-dialog>
     
     <!-- 抽奖结果弹窗 -->
-    <van-dialog v-model:show="showResultDialog" :title="resultDialogTitle" show-cancel-button @confirm="showResultDialog = false" :confirm-button-text="resultAwarded ? '太棒了！' : '继续努力'">
+    <van-dialog v-model:show="showResultDialog" :title="resultDialogTitle" show-cancel-button close-on-click-overlay @confirm="showResultDialog = false" :confirm-button-text="resultAwarded ? '太棒了！' : '继续努力'">
       <div class="result-content" v-if="drawResult">
         <div class="sticker-display" :class="'rarity-' + drawResult.sticker.rarity">
           <span class="emoji">{{ drawResult.sticker.emoji }}</span>
@@ -146,8 +195,28 @@
       </div>
     </van-dialog>
     
+    <!-- 头像抽奖结果弹窗 -->
+    <van-dialog v-model:show="showAvatarResultDialog" :title="avatarResultDialogTitle" show-cancel-button close-on-click-overlay @confirm="showAvatarResultDialog = false" :confirm-button-text="avatarResultAwarded ? '太棒了！' : '继续努力'">
+      <div class="avatar-result-content" v-if="avatarDrawResult">
+        <div class="avatar-display" v-if="avatarDrawResult.avatar">
+          <img :src="avatarDrawResult.avatar.url" class="avatar-big" />
+          <span class="name">{{ avatarDrawResult.avatar.name }}</span>
+        </div>
+        <div class="avatar-no-drop" v-else>
+          <span class="sad">😅</span>
+          <p>很遗憾，本次未抽中头像</p>
+          <p class="tip">再接再厉，继续转盘试试吧～</p>
+        </div>
+        <div class="result-info">
+          <p v-if="avatarResultAwarded" class="success">🎉 恭喜获得新头像！</p>
+          <p v-else class="duplicate">本次消耗 10 积分</p>
+          <p class="stars-left">剩余积分：{{ avatarDrawResult.remainingStars }} ★</p>
+        </div>
+      </div>
+    </van-dialog>
+
     <!-- 保底兑换弹窗 -->
-    <van-dialog v-model:show="showExchangeDialog" title="🎁 保底兑换 - 选择任意贴纸" confirm-button-text="确认兑换" @confirm="handleGuaranteeExchange">
+    <van-dialog v-model:show="showExchangeDialog" title="🎁 保底兑换 - 选择任意贴纸" confirm-button-text="确认兑换" close-on-click-overlay @confirm="handleGuaranteeExchange">
       <div class="exchange-stickers">
         <div 
           v-for="sticker in exchangeOptions" 
@@ -160,7 +229,7 @@
           <span class="name">{{ sticker.name }}</span>
           <van-tag :type="getRarityTagType(sticker.rarity)" size="small">{{ sticker.rarity }}</van-tag>
         </div>
-        <van-empty v-if="exchangeOptions.length === 0" description="本周奖池贴纸已全部获得" />
+        <van-empty v-if="exchangeOptions.length === 0" description="本周可兑换贴纸已全部获取，继续抽奖吧！" />
       </div>
     </van-dialog>
   </div>
@@ -171,6 +240,7 @@ import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { getRewards, createReward as createRewardApi, createExchange, getStudentExchanges, 
          getWeeklyLimitedStickers, getLotteryProgress, drawSticker, guaranteeExchange, getExchangeOptions } from '@/api/reward'
+import { getAvatarWeeklyLimited, drawAvatar, getAvatarProgress } from '@/api/avatar'
 import RewardCard from '@/components/RewardCard.vue'
 
 import { showToast, showConfirmDialog } from 'vant'
@@ -193,6 +263,25 @@ const resultAwarded = ref(false)
 const showExchangeDialog = ref(false)
 const exchangeOptions = ref([])
 const selectedExchangeSticker = ref('')
+
+// 每次打开保底弹窗都刷新数据
+watch(() => showExchangeDialog.value, (val) => {
+  if (val) loadExchangeOptions()
+})
+
+// 头像保底弹窗打开时加载可选头像
+watch(showAvatarExchangeDialog, (val) => {
+  if (val) loadAvatarExchangeOptions()
+})
+
+// 头像抽奖相关
+const weeklyAvatarInfo = ref({ limitedAvatars: [], weekStart: '', weekEnd: '' })
+const avatarProgress = ref({ drawCount: 0, guaranteeCount: 20 })
+const avatarDrawing = ref(false)
+const showAvatarResultDialog = ref(false)
+const avatarResultDialogTitle = ref('🎉 恭喜获得头像！')
+const avatarDrawResult = ref(null)
+const avatarResultAwarded = ref(false)
 
 const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
 
@@ -227,7 +316,7 @@ const loadExchangeHistory = async () => {
 
 const loadWeeklyInfo = async () => {
   try {
-    const res = await getWeeklyLimitedStickers()
+    const res = await getWeeklyLimitedStickers(userStore.userInfo?.id)
     weeklyInfo.value = res
   } catch (error) {
     console.error('Load weekly info error:', error)
@@ -241,6 +330,55 @@ const loadLotteryProgress = async () => {
     lotteryProgress.value = res
   } catch (error) {
     console.error('Load lottery progress error:', error)
+  }
+}
+
+const loadAvatarWeeklyInfo = async () => {
+  try {
+    const res = await getAvatarWeeklyLimited(userStore.userInfo?.id)
+    weeklyAvatarInfo.value = res
+  } catch (error) {
+    console.error('Load avatar weekly info error:', error)
+  }
+}
+
+const loadAvatarProgress = async () => {
+  if (!userStore.userInfo?.id) return
+  try {
+    const res = await getAvatarProgress(userStore.userInfo.id)
+    avatarProgress.value = res
+  } catch (error) {
+    console.error('Load avatar progress error:', error)
+  }
+}
+
+const handleDrawAvatar = async () => {
+  if (!userStore.userInfo?.id) {
+    showToast('请先登录')
+    return
+  }
+
+  const currentStars = userStore.userInfo?.stars || 0
+  if (currentStars < 10) {
+    showToast('积分不够，需要10积分')
+    return
+  }
+
+  avatarDrawing.value = true
+  try {
+    const res = await drawAvatar(userStore.userInfo.id)
+    avatarDrawResult.value = res
+    avatarResultAwarded.value = res.awarded
+    avatarResultDialogTitle.value = res.awarded ? '🎉 恭喜获得头像！' : '😅 很遗憾...'
+    showAvatarResultDialog.value = true
+
+    // 刷新进度和用户积分
+    await loadAvatarProgress()
+    await userStore.getUserInfoAction()
+  } catch (error) {
+    showToast(error.message || '抽奖失败')
+  } finally {
+    avatarDrawing.value = false
   }
 }
 
@@ -294,9 +432,13 @@ const handleGuaranteeExchange = async () => {
 }
 
 const loadExchangeOptions = async () => {
+  if (!userStore.userInfo?.id) {
+    console.warn('loadExchangeOptions: userId not ready')
+    return
+  }
   try {
     const res = await getExchangeOptions(userStore.userInfo.id)
-    exchangeOptions.value = res || []
+    exchangeOptions.value = res?.data || res || []
   } catch (error) {
     console.error('Load exchange options error:', error)
   }
@@ -352,6 +494,8 @@ onMounted(() => {
   } else {
     loadWeeklyInfo()
     loadLotteryProgress()
+    loadAvatarWeeklyInfo()
+    loadAvatarProgress()
   }
 })
 </script>
@@ -417,6 +561,10 @@ onMounted(() => {
   border: 2px solid #9933ff;
 }
 
+.limited-sticker-card.sticker-owned {
+  opacity: 0.45;
+}
+
 .limited-sticker-card .emoji {
   font-size: 32px;
   display: block;
@@ -424,6 +572,31 @@ onMounted(() => {
 }
 
 .limited-sticker-card .name {
+  font-size: 12px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.limited-avatar-card {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: var(--clay-radius-sm);
+  padding: 12px;
+  text-align: center;
+  min-width: 80px;
+  color: #333;
+}
+
+.limited-avatar-card .avatar-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 4px;
+}
+
+.limited-avatar-card .name {
   font-size: 12px;
   display: block;
   margin-bottom: 4px;
@@ -484,6 +657,34 @@ onMounted(() => {
   display: block;
   margin-bottom: 8px;
 }
+
+.avatar-display {
+  background: linear-gradient(135deg, #fff0f5 0%, #ffffff 100%);
+  border-radius: var(--clay-radius-md);
+  padding: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.avatar-display .avatar-big {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 8px;
+}
+
+.avatar-display .name {
+  font-size: 18px;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 8px;
+}
+
+
+
+
 
 .sticker-display .name {
   font-size: 18px;
