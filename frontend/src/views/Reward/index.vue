@@ -269,11 +269,6 @@ watch(() => showExchangeDialog.value, (val) => {
   if (val) loadExchangeOptions()
 })
 
-// 头像保底弹窗打开时加载可选头像
-watch(showAvatarExchangeDialog, (val) => {
-  if (val) loadAvatarExchangeOptions()
-})
-
 // 头像抽奖相关
 const weeklyAvatarInfo = ref({ limitedAvatars: [], weekStart: '', weekEnd: '' })
 const avatarProgress = ref({ drawCount: 0, guaranteeCount: 20 })
