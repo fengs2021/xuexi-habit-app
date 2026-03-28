@@ -27,6 +27,7 @@ import streakRoutes from './routes/streak.js'
 import wheelRoutes from './routes/wheel.js'
 import avatarRoutes from './routes/avatars.js'
 import stickerLotteryRoutes from './routes/stickerLottery.js'
+import emojiPetsRoutes from './routes/emojiPets.js'
 import pointRoutes from './routes/points.js'
 
 // 加载环境变量
@@ -81,6 +82,7 @@ app.use(backupRoutes.routes())
 app.use(streakRoutes.routes())
 app.use(wheelRoutes.routes())
 app.use(stickerLotteryRoutes.routes())
+app.use(emojiPetsRoutes.routes())
 app.use(pointRoutes.routes())
 app.use(avatarRoutes.routes())
 

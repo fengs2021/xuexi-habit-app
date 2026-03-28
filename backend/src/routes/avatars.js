@@ -261,34 +261,34 @@ router.post('/gacha/:userId', async (ctx) => {
         message: '恭喜抽中头像！'
       })
     } else {
-      // 头像池都抽完了（全部已拥有），给表情贴纸安慰奖
-      let consolationSticker = null
-      const stickerResult = await pool.query(
-        `SELECT s.* FROM stickers s
-         WHERE s.id NOT IN (SELECT sticker_id FROM user_stickers WHERE user_id = $1)
+      // 头像池都抽完了（全部已拥有），给表情宠物安慰奖
+      let consolationEmojiPet = null
+      const emojiPetResult = await pool.query(
+        `SELECT e.* FROM emoji_pets e
+         WHERE e.pool_type = 'available'
+           AND e.id NOT IN (SELECT emoji_pet_id FROM user_emoji_pets WHERE user_id = $1)
          ORDER BY RANDOM() LIMIT 1`,
         [userId]
       )
-      if (stickerResult.rows.length > 0) {
-        consolationSticker = stickerResult.rows[0]
+      if (emojiPetResult.rows.length > 0) {
+        consolationEmojiPet = emojiPetResult.rows[0]
         await client.query(
-          'INSERT INTO user_stickers (user_id, sticker_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [userId, consolationSticker.id]
+          'INSERT INTO user_emoji_pets (user_id, emoji_pet_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [userId, consolationEmojiPet.id]
         )
       }
 
       ctx.body = success({
         awarded: false,
-        consolationSticker: consolationSticker ? {
-          id: consolationSticker.id,
-          name: consolationSticker.name,
-          emoji: consolationSticker.emoji,
-          rarity: consolationSticker.rarity
+        consolationEmojiPet: consolationEmojiPet ? {
+          id: consolationEmojiPet.id,
+          name: consolationEmojiPet.name,
+          emoji: consolationEmojiPet.emoji
         } : null,
         starsSpent: DRAW_COST,
         remainingStars: currentStars - DRAW_COST,
         drawCount,
-        message: consolationSticker ? '很遗憾未抽中头像，获得表情贴纸安慰奖！' : '很遗憾，本次未抽中头像'
+        message: consolationEmojiPet ? '很遗憾未抽中头像，获得表情宠物安慰奖！' : '很遗憾，本次未抽中头像'
       })
     }
   } catch (err) {
