@@ -236,7 +236,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { getRewards, createReward as createRewardApi, createExchange, getStudentExchanges, 
          getWeeklyLimitedStickers, getLotteryProgress, drawSticker, guaranteeExchange, getExchangeOptions } from '@/api/reward'
