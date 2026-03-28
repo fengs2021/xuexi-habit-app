@@ -49,6 +49,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { getDisplaySettings, updateDisplaySettings } from '@/api/display'
 import { getAvatars } from '@/api/avatar'
+import { get as getEmojiPets } from '@/api/emojiPets'
 
 const userStore = useUserStore()
 const petWrapper = ref(null)
@@ -59,16 +60,12 @@ const showPicker = ref(false)
 const currentPet = ref('😊')
 const pressTimer = ref(null)
 const imagePets = ref([])
+const emojiPets = ref([])
 // 只显示已解锁的头像（locked=false）
 const unlockedImagePets = computed(() => imagePets.value.filter(p => !p.locked))
+const petOptions = computed(() => emojiPets.value.map(p => p.emoji))
 
-const petOptions = [
-  '😊', '😍', '🥰', '😎', '🤩', '😇', '🤗', '😺', '😸', '😻',
-  '🙈', '🙉', '🙊', '🐵', '🐶', '🐱', '🐰', '🐻', '🐼', '🐨',
-  '🦊', '🦁', '🐯', '🦄', '🐲', '🦋', '🐢', '🐠', '🐬', '🐳',
-  '🦈', '🐸', '🦜', '🦚', '🦩', '🦆', '🦢', '🪼', '🦎', '🐛',
-  '🐝', '🌸', '🌺', '🌈'
-]
+
 
 const petNames = {
   '😊': '开心果', '😍': '小甜心', '🥰': '小可爱', '😎': '小酷哥', '🤩': '小星星',
@@ -178,6 +175,14 @@ const loadPetData = async () => {
     }
   } catch (e) {
     console.error('Failed to load pet settings:', e)
+  }
+  try {
+    const emojiRes = await getEmojiPets(userStore.userInfo.id)
+    if (emojiRes?.data?.code === 0) {
+      emojiPets.value = emojiRes.data.data || []
+    }
+  } catch (e) {
+    console.error('Failed to load emoji pets:', e)
   }
 }
 
