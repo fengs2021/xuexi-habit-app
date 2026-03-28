@@ -178,8 +178,8 @@ const loadPetData = async () => {
   }
   try {
     const emojiRes = await getEmojiPets(userStore.userInfo.id)
-    if (emojiRes?.data?.code === 0) {
-      emojiPets.value = emojiRes.data.data || []
+    if (Array.isArray(emojiRes)) {
+      emojiPets.value = emojiRes || []
     }
   } catch (e) {
     console.error('Failed to load emoji pets:', e)
