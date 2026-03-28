@@ -1,5 +1,29 @@
 import pool from '../config/database.js'
 import { success, error, ErrorCodes } from '../utils/response.js'
+
+// ========== 北京时间工具函数 ==========
+// 获取北京时间 0点的 UTC 时间（用于数据库查询）
+// 北京 midnight = UTC 前一天 16:00
+function getBeijingMidnightUTC(date = new Date()) {
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const parts = fmt.formatToParts(date);
+  const get = type => parseInt(parts.find(p => p.type === type).value);
+  let y = get('year'), m = get('month'), d = get('day');
+  if (d === 1) {
+    const prevMonth = new Date(Date.UTC(y, m - 1, 0));
+    return new Date(Date.UTC(prevMonth.getUTCFullYear(), prevMonth.getUTCMonth(), prevMonth.getUTCDate(), 16, 0, 0, 0));
+  }
+  return new Date(Date.UTC(y, m - 1, d - 1, 16, 0, 0, 0));
+}
+
+// 获取北京时间本周 Monday 0点的 UTC 时间
+function getBeijingWeekStartUTC(date = new Date()) {
+  const midnight = getBeijingMidnightUTC(date);
+  const dow = date.getDay();
+  const diff = dow === 0 ? 6 : dow - 1;
+  return new Date(midnight.getTime() - diff * 24 * 60 * 60 * 1000);
+}
+
 import jwt from 'jsonwebtoken'
 import JWT_SECRET from '../utils/jwt.js'
 import { addPoints, subtractPoints, PointType } from '../services/points.js'
@@ -39,13 +63,8 @@ export async function getTasks(ctx) {
     )
     const tasks = result.rows
     const now = new Date()
-    let cycleStart = new Date()
-    cycleStart.setHours(0, 0, 0, 0)
-    const dayOfWeek = now.getDay()
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-    const weekStart = new Date(now)
-    weekStart.setDate(now.getDate() - diff)
-    weekStart.setHours(0, 0, 0, 0)
+    const cycleStart = getBeijingMidnightUTC(now)
+    const weekStart = getBeijingWeekStartUTC(now)
     
     // 确定要查询的用户ID
     let queryUserId = user.id
@@ -76,7 +95,7 @@ export async function getTasks(ctx) {
       
       // 使用正确的用户ID查询完成状态
       const logResult = await pool.query(
-        'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 AND created_at >= $4 ORDER BY created_at DESC LIMIT 1',
+        'SELECT approval_status FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = $3 AND created_at >= $4::timestamptz ORDER BY created_at DESC LIMIT 1',
         [queryUserId, task.id, 'complete', checkTime.toISOString()]
       )
       if (logResult.rows.length > 0) {
@@ -163,19 +182,13 @@ export async function completeTask(ctx) {
     // 对于每日/每周任务，检查本周期是否已完成
     if (task.frequency !== 'once') {
       const now = new Date()
-      let cycleStart = new Date()
-      cycleStart.setHours(0, 0, 0, 0)
-      
+      let cycleStart = getBeijingMidnightUTC(now)
       if (task.frequency === 'weekly') {
-        const dayOfWeek = now.getDay()
-        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-        cycleStart = new Date(now)
-        cycleStart.setDate(now.getDate() - diff)
-        cycleStart.setHours(0, 0, 0, 0)
+        cycleStart = getBeijingWeekStartUTC(now)
       }
       
       const existingResult = await pool.query(
-        `SELECT id FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = 'complete' AND created_at >= $3 LIMIT 1`,
+        `SELECT id FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action = 'complete' AND created_at >= $3::timestamptz LIMIT 1`,
         [user.id, id, cycleStart.toISOString()]
       )
       
@@ -215,19 +228,13 @@ export async function skipTask(ctx) {
     
     if (frequency !== 'once') {
       const now = new Date()
-      let cycleStart = new Date()
-      cycleStart.setHours(0, 0, 0, 0)
-      
+      let cycleStart = getBeijingMidnightUTC(now)
       if (frequency === 'weekly') {
-        const dayOfWeek = now.getDay()
-        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-        cycleStart = new Date(now)
-        cycleStart.setDate(now.getDate() - diff)
-        cycleStart.setHours(0, 0, 0, 0)
+        cycleStart = getBeijingWeekStartUTC(now)
       }
       
       const existingResult = await pool.query(
-        `SELECT id FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action IN ('complete', 'skipped') AND created_at >= $3 LIMIT 1`,
+        `SELECT id FROM task_logs WHERE user_id = $1 AND task_id = $2 AND action IN ('complete', 'skipped') AND created_at >= $3::timestamptz LIMIT 1`,
         [user.id, id, cycleStart.toISOString()]
       )
       
@@ -346,17 +353,8 @@ export async function getCycleTaskStatus(ctx) {
   try {
     // 计算时间范围
     const now = new Date()
-    
-    // 当天零点
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    
-    // 本周一
-    const dayOfWeek = now.getDay()
-    const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-    const weekStart = new Date(now)
-    weekStart.setDate(now.getDate() - daysSinceMonday)
-    weekStart.setHours(0, 0, 0, 0)
+    const todayStart = getBeijingMidnightUTC(now)
+    const weekStart = getBeijingWeekStartUTC(now)
     
     // 查询本周期的所有完成记录（approved + pending）
     const logsResult = await pool.query(
@@ -367,8 +365,8 @@ export async function getCycleTaskStatus(ctx) {
        WHERE u.family_id = $1 
          AND tl.action = 'complete'
          AND (
-           (t.frequency = 'daily' AND tl.created_at >= $2)
-           OR (t.frequency = 'weekly' AND tl.created_at >= $3)
+           (t.frequency = 'daily' AND tl.created_at >= $2::timestamptz)
+           OR (t.frequency = 'weekly' AND tl.created_at >= $3::timestamptz)
            OR (t.frequency = 'once')
          )
        ORDER BY tl.created_at DESC`,

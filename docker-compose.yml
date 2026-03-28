@@ -49,7 +49,7 @@ services:
 
   # Redis 缓存
   redis:
-    image: redis:7-alpine
+    image: redis:alpine
     volumes:
       - redis_data:/data
     networks:
