@@ -13,6 +13,8 @@
           :key="reward.id"
           :reward="reward"
           :show-exchange="false"
+          :show-edit="true"
+          @edit="handleEdit"
           @setTarget="handleSetTarget"
           @clearTarget="handleClearTarget"
         />
@@ -179,6 +181,16 @@
         </van-cell-group>
       </van-form>
     </van-dialog>
+
+    <!-- 编辑奖励弹窗 -->
+    <van-dialog v-model:show="showEditDialog" title="编辑奖励" show-cancel-button close-on-click-overlay @confirm="saveEdit">
+      <van-form>
+        <van-cell-group inset>
+          <van-field v-model="editingReward.title" label="奖励名称" placeholder="例如：去游乐场" />
+          <van-field v-model.number="editingReward.starCost" label="所需星星" type="number" placeholder="输入所需星星" />
+        </van-cell-group>
+      </van-form>
+    </van-dialog>
     
     <!-- 抽奖结果弹窗 -->
     <van-dialog v-model:show="showResultDialog" :title="resultDialogTitle" show-cancel-button close-on-click-overlay @confirm="showResultDialog = false" :confirm-button-text="resultAwarded ? '太棒了！' : '继续努力'">
@@ -238,7 +250,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useUserStore } from '@/store/modules/user'
-import { getRewards, createReward as createRewardApi, createExchange, getStudentExchanges, 
+import { getRewards, createReward as createRewardApi, updateReward as updateRewardApi, createExchange, getStudentExchanges, 
          getWeeklyLimitedStickers, getLotteryProgress, drawSticker, guaranteeExchange, getExchangeOptions } from '@/api/reward'
 import { getAvatarWeeklyLimited, drawAvatar, getAvatarProgress } from '@/api/avatar'
 import RewardCard from '@/components/RewardCard.vue'
@@ -251,6 +263,8 @@ const exchangeHistory = ref([])
 const showCreate = ref(false)
 const activeTab = ref(0)
 const newReward = ref({ title: '', starCost: 30 })
+const showEditDialog = ref(false)
+const editingReward = ref({ id: '', title: '', starCost: 30 })
 
 // 抽奖相关
 const weeklyInfo = ref({ limitedStickers: [], weekStart: '', weekEnd: '' })
@@ -448,6 +462,26 @@ const createReward = async () => {
     await loadRewards()
   } catch (error) {
     showToast('创建失败')
+  }
+}
+
+const handleEdit = (reward) => {
+  editingReward.value = {
+    id: reward.id,
+    title: reward.title,
+    starCost: reward.starCost || reward.star_cost || 30
+  }
+  showEditDialog.value = true
+}
+
+const saveEdit = async () => {
+  try {
+    await updateRewardApi(editingReward.value)
+    showToast('修改成功')
+    showEditDialog.value = false
+    await loadRewards()
+  } catch (error) {
+    showToast('修改失败')
   }
 }
 
