@@ -25,7 +25,7 @@
       <div v-if="record.notes" class="notes-section">
         <div class="section-title">备注</div>
         <van-cell-group inset>
-          <van-cell :label="record.notes" />
+          <van-cell title="备注" :value="record.notes" />
         </van-cell-group>
       </div>
 
@@ -99,7 +99,8 @@ const statusText = computed(() => {
     case 'pending': return '待审核'
     case 'approved': return '已通过'
     case 'rejected': return '已拒绝'
-    default: return '未知'
+    case 'draft': return '草稿'
+    default: return record.value?.status || ''
   }
 })
 
