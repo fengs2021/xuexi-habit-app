@@ -44,18 +44,11 @@
       </div>
     </div>
   </div>
-
-  <CelebrationAnimation 
-    :show="showCelebration" 
-    :stars="task.starReward || task.star_reward || 1"
-    @close="showCelebration = false" 
-  />
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { showToast } from 'vant'
-import CelebrationAnimation from './CelebrationAnimation.vue'
 
 const props = defineProps({
   task: Object
@@ -66,7 +59,6 @@ let startX = 0
 let currentX = 0
 const isSwiped = ref(false)
 const loading = ref(false)
-const showCelebration = ref(false)
 
 const onTouchStart = (e) => {
   startX = e.touches[0].clientX
