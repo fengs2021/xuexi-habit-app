@@ -189,6 +189,29 @@
         />
       </van-popup>
     </van-dialog>
+
+    <!-- 贴纸掉落弹窗 -->
+    <van-dialog
+      v-model:show="stickerDropDialog.show"
+      :show-confirm-button="true"
+      confirm-button-text="太棒了！"
+      close-on-click-overlay
+      class="sticker-drop-dialog"
+    >
+      <div class="sticker-drop-content">
+        <div class="drop-bg">
+          <div class="sticker-reveal">
+            <span class="sticker-emoji">{{ stickerDropDialog.emoji }}</span>
+          </div>
+          <div class="drop-title">🎉 恭喜获得新贴纸！</div>
+          <div class="sticker-info">
+            <span class="sticker-name">{{ stickerDropDialog.name }}</span>
+            <span class="sticker-rarity" :style="{ color: stickerDropDialog.rarityColor }">{{ stickerDropDialog.rarity }}</span>
+          </div>
+          <div class="drop-tip">来自：{{ stickerDropDialog.taskName }}</div>
+        </div>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
@@ -344,13 +367,48 @@ const deleteTask = async (id) => {
 
 const handleComplete = async (task) => {
   try {
-    await completeTask(task.id)
-    showToast('已提交家长审批')
+    const res = await completeTask(task.id)
+    // 显示星星动画
+    showStickerDrop(task, res.sticker)
     await loadTasks()
   } catch (error) {
     showToast(error.message || '操作失败')
   }
 }
+
+// 贴纸掉落弹窗
+const showStickerDrop = (task, stickerResult) => {
+  if (!stickerResult || !stickerResult.awarded) {
+    showToast('已提交家长审批')
+    return
+  }
+  // 获取贴纸详情
+  const emoji = stickerResult.emoji || '🎁'
+  const name = stickerResult.name || '神秘贴纸'
+  const rarity = stickerResult.rarity || 'N'
+  
+  const rarityText = { SSR: 'SSR', SR: 'SR', R: 'R', N: 'N' }[rarity] || 'N'
+  const rarityColor = { SSR: '#FFD700', SR: '#9933FF', R: '#1989FA', N: '#999' }[rarity] || '#999'
+  
+  // 构建弹窗内容
+  stickerDropDialog.value = {
+    show: true,
+    emoji,
+    name,
+    rarity: rarityText,
+    rarityColor,
+    taskName: task.title
+  }
+}
+
+const stickerDropDialog = ref({
+  show: false,
+  emoji: '🎁',
+  name: '',
+  rarity: 'N',
+  rarityColor: '#999',
+  taskName: ''
+})
 
 const getCompletedStudents = (task) => {
   return studentTaskStatus.value
@@ -420,5 +478,69 @@ onMounted(() => {
 }
 .student-status-row .pending {
   color: #ff976a;
+}
+
+/* 贴纸掉落弹窗 */
+.sticker-drop-content {
+  padding: 20px;
+  text-align: center;
+}
+.drop-bg {
+  background: linear-gradient(135deg, #FFF0F5 0%, #FFE4EC 50%, #FFF8DC 100%);
+  border-radius: var(--clay-radius-md);
+  padding: 30px 20px;
+  border: 3px solid #FFB6C1;
+}
+.sticker-reveal {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, #fff 0%, #ffe4ec 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 25px rgba(255, 105, 180, 0.35);
+  animation: stickerBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.sticker-emoji {
+  font-size: 56px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+}
+@keyframes stickerBounce {
+  0% { transform: scale(0) rotate(-20deg); }
+  50% { transform: scale(1.2) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.drop-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: #FF69B4;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 4px rgba(255, 105, 180, 0.3);
+}
+.sticker-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.sticker-name {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+.sticker-rarity {
+  font-size: 16px;
+  font-weight: 800;
+  padding: 2px 10px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 20px;
+}
+.drop-tip {
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
 }
 </style>

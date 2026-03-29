@@ -111,7 +111,13 @@ export async function awardRandomSticker(userId, taskType) {
       'INSERT INTO user_stickers (user_id, sticker_id) VALUES ($1, $2)',
       [userId, selectedSticker.id]
     )
-    return { awarded: true, stickerId: selectedSticker.id, rarity: selectedRarity }
+    return { 
+      awarded: true, 
+      stickerId: selectedSticker.id, 
+      rarity: selectedRarity,
+      emoji: selectedSticker.emoji,
+      name: selectedSticker.name
+    }
   }
   return { awarded: false, reason: 'already_owned' }
   } catch (error) {
