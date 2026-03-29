@@ -26,6 +26,7 @@ import backupRoutes from './routes/backup.js'
 import streakRoutes from './routes/streak.js'
 import wheelRoutes from './routes/wheel.js'
 import avatarRoutes from './routes/avatars.js'
+import studyRoutes from './routes/study.js'
 import stickerLotteryRoutes from './routes/stickerLottery.js'
 import emojiPetsRoutes from './routes/emojiPets.js'
 import pointRoutes from './routes/points.js'
@@ -85,6 +86,7 @@ app.use(stickerLotteryRoutes.routes())
 app.use(emojiPetsRoutes.routes())
 app.use(pointRoutes.routes())
 app.use(avatarRoutes.routes())
+app.use(studyRoutes.routes())
 
 // 静态文件服务 (头像)
 app.use(serve('./public', { maxage: 86400000 }))
