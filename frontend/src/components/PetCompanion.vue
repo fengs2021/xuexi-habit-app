@@ -11,7 +11,7 @@
       <div class="pet-name">{{ petNames[currentPet] || '小宠物' }}</div>
     </div>
     
-    <van-popup v-model:show="showPicker" position="bottom" round :overlay="false" :close-on-click-overlay="false" style="max-height: 80vh; z-index: 2001;">
+    <van-popup v-model:show="showPicker" position="bottom" round :overlay="true" close-on-click-overlay style="max-height: 80vh; z-index: 2001;">
       <div class="pet-picker">
         <div class="picker-title">🎀 选择你的宠物</div>
         
