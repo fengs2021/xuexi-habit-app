@@ -177,7 +177,7 @@ export async function getRecords(ctx) {
   const offset = (parseInt(page) - 1) * parseInt(limit)
   
   try {
-    let where = 'WHERE sr.family_id = $1'
+    let where = 'WHERE ss.family_id = $1'
     const values = [user.family_id]
     let idx = 2
     
