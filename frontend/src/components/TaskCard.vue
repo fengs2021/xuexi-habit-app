@@ -85,7 +85,6 @@ const onTouchEnd = () => {
 const complete = async () => {
   loading.value = true
   try {
-    showCelebration.value = true
     await emit('complete', props.task)
   } finally {
     loading.value = false

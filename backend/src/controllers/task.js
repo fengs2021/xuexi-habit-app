@@ -203,7 +203,20 @@ export async function completeTask(ctx) {
       [user.id, id, 'complete', task.star_reward, 'pending']
     )
     
-    ctx.body = success({ message: '已完成申请，请等待家长审批' })
+    // 学生点击完成时直接掉落贴纸
+    let stickerResult = null
+    try {
+      const rewardsModule = await import('./rewards.js')
+      const { awardRandomSticker } = rewardsModule
+      stickerResult = await awardRandomSticker(user.id, task.frequency || 'daily')
+    } catch (e) {
+      console.error('Sticker drop error:', e)
+    }
+    
+    ctx.body = success({ 
+      message: '已完成申请，请等待家长审批',
+      sticker: stickerResult
+    })
   } catch (err) {
     console.error('CompleteTask error:', err)
     ctx.body = error(500, '完成任务失败')
