@@ -299,8 +299,8 @@ export async function createRecord(ctx) {
   
   try {
     const result = await pool.query(
-      `INSERT INTO study_records (user_id, subject_id, record_date, photos, notes)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO study_records (user_id, family_id, subject_id, record_date, photos, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [user.id, subject_id, record_date || new Date().toISOString().split('T')[0], JSON.stringify(photos), notes]
     )
