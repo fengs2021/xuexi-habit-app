@@ -38,16 +38,15 @@ export async function createExchange(ctx) {
     ctx.body = error(ErrorCodes.NO_PERMISSION, '只有孩子才能发起兑换')
     return
   }
+
+  const { rewardId } = ctx.request.body
   
   try {
-    const { rewardId } = ctx.request.body
-    
-    // 检查奖励是否存在
+    // 查找奖励
     const rewardResult = await pool.query(
-      'SELECT * FROM rewards WHERE id = $1 AND family_id = $2',
-      [rewardId, user.family_id]
+      'SELECT * FROM rewards WHERE id = $1 AND is_active = true',
+      [rewardId]
     )
-    
     if (rewardResult.rows.length === 0) {
       ctx.body = error(404, '奖励不存在')
       return
@@ -55,265 +54,60 @@ export async function createExchange(ctx) {
     
     const reward = rewardResult.rows[0]
     
-    // 检查星星是否足够
+    // 获取用户当前积分
     const pointsInfo = await getPointsInfo(user.id)
-    if (!pointsInfo.success || pointsInfo.balance < reward.star_cost) {
-      ctx.body = error(3003, '星星不足')
+    const currentStars = pointsInfo.currentBalance || 0
+    
+    if (currentStars < reward.star_cost) {
+      ctx.body = error(400, '积分不足')
+      return
+    }
+    
+    // 扣除积分
+    const deductResult = await subtractPoints(user.id, reward.star_cost, PointType.EXCHANGE, {
+      sourceId: rewardId,
+      description: `兑换奖励：${reward.title}`
+    })
+    
+    if (!deductResult.success) {
+      ctx.body = error(400, deductResult.error || '积分扣除失败')
       return
     }
     
     // 创建兑换记录（待审批）
-    const result = await pool.query(
+    const exchangeResult = await pool.query(
       'INSERT INTO exchange_logs (user_id, reward_id, stars_spent, status) VALUES ($1, $2, $3, $4) RETURNING *',
       [user.id, rewardId, reward.star_cost, 'pending']
     )
     
-    ctx.body = success({
-      exchangeId: result.rows[0].id,
-      status: 'pending',
-      rewardTitle: reward.title,
-      starsSpent: reward.star_cost
-    })
+    ctx.body = success(exchangeResult.rows[0])
   } catch (err) {
     console.error('CreateExchange error:', err)
     ctx.body = error(500, '兑换失败')
   }
 }
 
-// 获取待审批列表（家长）
-export async function getPendingExchanges(ctx) {
-  const user = await getUserFromToken(ctx)
-  if (!user) return
-  
-  if (user.role === 'child') {
-    ctx.body = error(ErrorCodes.NO_PERMISSION, '无权限')
-    return
-  }
-  
-  try {
-    const result = await pool.query(
-      `SELECT e.*, r.title as reward_title, r.icon as reward_icon, r.rarity,
-              u.nickname as child_nickname, u.avatar as child_avatar
-       FROM exchange_logs e
-       JOIN rewards r ON e.reward_id = r.id
-       JOIN users u ON e.user_id = u.id
-       WHERE u.family_id = $1 AND e.status = 'pending'
-       ORDER BY e.created_at DESC`,
-      [user.family_id]
-    )
-    
-    ctx.body = success(result.rows)
-  } catch (err) {
-    console.error('GetPendingExchanges error:', err)
-    ctx.body = error(500, '获取列表失败')
-  }
-}
-
-// 批准兑换（家长）
-export async function approveExchange(ctx) {
-  const user = await getUserFromToken(ctx)
-  if (!user) return
-  
-  if (user.role === 'child') {
-    ctx.body = error(ErrorCodes.NO_PERMISSION, '无权限')
-    return
-  }
-  
-  const exchangeId = ctx.params.id
-  const { comment } = ctx.request.body || {}
-  
-  const client = await pool.connect()
-  try {
-    await client.query('BEGIN')
-    
-    // 获取兑换记录
-    const exchangeResult = await client.query(
-      'SELECT e.*, r.title as reward_title FROM exchange_logs e JOIN rewards r ON e.reward_id = r.id WHERE e.id = $1',
-      [exchangeId]
-    )
-    
-    if (exchangeResult.rows.length === 0) {
-      await client.query('ROLLBACK')
-      ctx.body = error(404, '兑换记录不存在')
-      return
-    }
-    
-    const exchange = exchangeResult.rows[0]
-    
-    if (exchange.status !== 'pending') {
-      await client.query('ROLLBACK')
-      ctx.body = error(400, '该兑换已处理')
-      return
-    }
-    
-    // 使用统一积分服务扣除星星
-    const pointsResult = await subtractPoints(exchange.user_id, exchange.stars_spent, PointType.EXCHANGE, {
-      sourceId: exchange.id,
-      description: `兑换「${exchange.reward_title}」消耗 ${exchange.stars_spent} 星星`
-    })
-    
-    if (!pointsResult.success) {
-      await client.query('ROLLBACK')
-      ctx.body = error(3003, pointsResult.error || '余额不足')
-      return
-    }
-    
-    // 更新兑换状态
-    await client.query(
-      'UPDATE exchange_logs SET status = $1, approved_by = $2, approved_at = NOW() WHERE id = $3',
-      ['completed', user.id, exchangeId]
-    )
-    
-    // 记录审批
-    await client.query(
-      'INSERT INTO exchange_approvals (exchange_id, approver_id, action, comment) VALUES ($1, $2, $3, $4)',
-      [exchangeId, user.id, 'approve', comment || null]
-    )
-    
-    await client.query('COMMIT')
-    
-    ctx.body = success({ 
-      status: 'completed',
-      currentBalance: pointsResult.balance
-    })
-  } catch (err) {
-    await client.query('ROLLBACK')
-    console.error('ApproveExchange error:', err)
-    ctx.body = error(500, '审批失败')
-  } finally {
-    client.release()
-  }
-}
-
-// 拒绝兑换（家长）
-export async function rejectExchange(ctx) {
-  const user = await getUserFromToken(ctx)
-  if (!user) return
-  
-  if (user.role === 'child') {
-    ctx.body = error(ErrorCodes.NO_PERMISSION, '无权限')
-    return
-  }
-  
-  const exchangeId = ctx.params.id
-  const { comment } = ctx.request.body || {}
-  
-  try {
-    // 检查兑换是否存在
-    const exchangeResult = await pool.query(
-      'SELECT status FROM exchange_logs WHERE id = $1',
-      [exchangeId]
-    )
-    
-    if (exchangeResult.rows.length === 0) {
-      ctx.body = error(404, '兑换记录不存在')
-      return
-    }
-    
-    if (exchangeResult.rows[0].status !== 'pending') {
-      ctx.body = error(400, '该兑换已处理')
-      return
-    }
-    
-    // 更新兑换状态
-    await pool.query(
-      'UPDATE exchange_logs SET status = $1, approved_by = $2, approved_at = NOW() WHERE id = $3',
-      ['cancelled', user.id, exchangeId]
-    )
-    
-    // 记录审批
-    await pool.query(
-      'INSERT INTO exchange_approvals (exchange_id, approver_id, action, comment) VALUES ($1, $2, $3, $4)',
-      [exchangeId, user.id, 'reject', comment || null]
-    )
-    
-    ctx.body = success({ status: 'cancelled' })
-  } catch (err) {
-    console.error('RejectExchange error:', err)
-    ctx.body = error(500, '拒绝失败')
-  }
-}
-
-// 获取兑换历史
-export async function getExchangeHistory(ctx) {
-  const user = await getUserFromToken(ctx)
-  if (!user) return
-  
-  try {
-    let query
-    let params
-    
-    if (user.role === 'child') {
-      // 孩子只能看自己的
-      query = `
-        SELECT e.*, r.title as reward_title, r.icon as reward_icon
-        FROM exchange_logs e
-        JOIN rewards r ON e.reward_id = r.id
-        WHERE e.user_id = $1
-        ORDER BY e.created_at DESC
-        LIMIT 50`
-      params = [user.id]
-    } else {
-      // 家长可以看所有家庭成员的兑换
-      const childId = ctx.query.childId
-      if (childId) {
-        query = `
-          SELECT e.*, r.title as reward_title, r.icon as reward_icon,
-                 u.nickname as child_nickname
-          FROM exchange_logs e
-          JOIN rewards r ON e.reward_id = r.id
-          JOIN users u ON e.user_id = u.id
-          WHERE u.family_id = $1 AND e.user_id = $2
-          ORDER BY e.created_at DESC
-          LIMIT 50`
-        params = [user.family_id, childId]
-      } else {
-        query = `
-          SELECT e.*, r.title as reward_title, r.icon as reward_icon,
-                 u.nickname as child_nickname
-          FROM exchange_logs e
-          JOIN rewards r ON e.reward_id = r.id
-          JOIN users u ON e.user_id = u.id
-          WHERE u.family_id = $1
-          ORDER BY e.created_at DESC
-          LIMIT 50`
-        params = [user.family_id]
-      }
-    }
-    
-    const result = await pool.query(query, params)
-    ctx.body = success(result.rows)
-  } catch (err) {
-    console.error('GetExchangeHistory error:', err)
-    ctx.body = error(500, '获取历史失败')
-  }
-}
-
-// 获取所有孩子的兑换记录（家长视图）
+// 获取孩子的兑换历史（家长审批后孩子可查看）
 export async function getStudentHistory(ctx) {
   const user = await getUserFromToken(ctx)
   if (!user) return
   
-  if (user.role === 'child') {
-    ctx.body = error(ErrorCodes.NO_PERMISSION, '无权限')
-    return
-  }
-  
   try {
     const result = await pool.query(
-      `SELECT e.*, u.nickname as user_nickname, r.title as reward_title, r.star_cost 
-       FROM exchange_logs e 
-       JOIN users u ON e.user_id = u.id 
-       JOIN rewards r ON e.reward_id = r.id 
-       WHERE u.family_id = $1 
-       ORDER BY e.created_at DESC 
+      `SELECT el.*, r.title as reward_title, r.icon as reward_icon,
+              u.nickname as approved_by_nickname
+       FROM exchange_logs el
+       JOIN rewards r ON el.reward_id = r.id
+       LEFT JOIN users u ON el.approved_by = u.id
+       WHERE el.user_id = $1
+       ORDER BY el.created_at DESC
        LIMIT 50`,
-      [user.family_id]
+      [user.id]
     )
     
     ctx.body = success(result.rows)
   } catch (err) {
     console.error('GetStudentHistory error:', err)
-    ctx.body = error(500, '获取失败')
+    ctx.body = error(500, '获取历史失败')
   }
 }
