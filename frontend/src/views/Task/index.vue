@@ -338,7 +338,7 @@ const confirmDeduct = async () => {
 
 const updateTask = async (task) => {
   try {
-    await updateTaskApi({ id: task.id, title: task.title, starReward: task.starReward, frequency: task.frequency })
+    await updateTaskApi({ id: task.id, title: task.title, star_reward: task.starReward, frequency: task.frequency })
     // 重新加载任务列表以刷新分类
     await loadTasks()
   } catch (error) {
