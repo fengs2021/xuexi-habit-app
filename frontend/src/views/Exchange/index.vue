@@ -336,12 +336,22 @@ const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四
 
 const formatDateTime = (time) => {
   if (!time) return ''
-  // 使用北京时间格式化（避免浏览器本地时区差异）
-  const d = new Date(time)
-  const parts = d.toLocaleString('en-GB', { timeZone: 'Asia/Shanghai', hour12: false }).split(/[\s:]/)
-  const [day, month, year, hours, minutes] = parts
-  const weekday = weekdays[new Date(time).getDay()]
-  return `${month}月${day}日 ${weekday} ${hours}:${minutes}`
+  try {
+    // 转换为北京时间
+    const d = new Date(time)
+    // 使用 toISOString 获取 UTC，然后手动计算北京时间
+    const utcDate = new Date(d.getTime() + 8 * 60 * 60 * 1000)
+    const year = utcDate.getUTCFullYear()
+    const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(utcDate.getUTCDate()).padStart(2, '0')
+    const hours = String(utcDate.getUTCHours()).padStart(2, '0')
+    const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0')
+    const weekday = weekdays[utcDate.getUTCDay()]
+    return `${month}月${day}日 ${weekday} ${hours}:${minutes}`
+  } catch (e) {
+    console.error('formatDateTime error:', e)
+    return time
+  }
 }
 
 onMounted(() => {
