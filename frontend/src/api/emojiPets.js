@@ -1,15 +1,13 @@
-import axios from 'axios'
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+import request from './request'
 
 export function get(userId) {
-  return axios.get(`${BASE_URL}/api/emoji-pets/${userId}`)
+  return request({ url: '/emoji-pets/' + userId, method: 'GET' })
 }
 
 export function getAll(userId) {
-  return axios.get(`${BASE_URL}/api/emoji-pets/${userId}/all`)
+  return request({ url: '/emoji-pets/' + userId + '/all', method: 'GET' })
 }
 
 export function unlock(userId, emojiPetId) {
-  return axios.post(`${BASE_URL}/api/emoji-pets/unlock/${userId}/${emojiPetId}`)
+  return request({ url: '/emoji-pets/unlock/' + userId + '/' + emojiPetId, method: 'POST' })
 }
