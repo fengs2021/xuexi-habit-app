@@ -8,12 +8,12 @@
           v-for="s in subjects"
           :key="s.id"
           :title="s.icon + ' ' + s.name"
-          :value="s.color"
           is-link
           @click="editSubject(s)"
         >
           <template #value>
             <van-tag :color="s.color">{{ s.name }}</van-tag>
+            <van-icon name="cross" class="delete-icon" @click.stop="onDelete(s)" />
           </template>
         </van-cell>
       </van-cell-group>
@@ -86,6 +86,16 @@ const saveSubject = async () => {
   }
 }
 
+const onDelete = async (s) => {
+  try {
+    await deleteSubject(s.id)
+    showSuccessToast('已删除')
+    loadSubjects()
+  } catch (e) {
+    showToast('删除失败')
+  }
+}
+
 onMounted(() => {
   loadSubjects()
 })
@@ -107,5 +117,12 @@ onMounted(() => {
   bottom: 60px;
   left: 16px;
   right: 16px;
+}
+
+.delete-icon {
+  margin-left: 12px;
+  color: #999;
+  font-size: 16px;
+  vertical-align: middle;
 }
 </style>
