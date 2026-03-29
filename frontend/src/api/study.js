@@ -40,7 +40,7 @@ export function deleteRecord(id) {
 
 // ========== OCR ==========
 export function ocrIdentify(data) {
-  return request({ url: '/study/ocr', method: 'POST', data })
+  return request({ url: '/study/ocr', method: 'POST', data, timeout: 120000 })
 }
 
 // ========== 题目 ==========
