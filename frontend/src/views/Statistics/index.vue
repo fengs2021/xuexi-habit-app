@@ -298,8 +298,10 @@ const getDayLabel = (dateStr) => {
 }
 
 const formatShortDate = (dateStr) => {
+  // 使用北京时间，避免日期差一天
   const date = new Date(dateStr)
-  return (date.getMonth() + 1) + '/' + date.getDate()
+  const parts = date.toLocaleString('en-CA', { timeZone: 'Asia/Shanghai' }).split('T')[0].split('-')
+  return parts[1] + '/' + parts[2]
 }
 
 const getIcon = (icon) => {
@@ -341,16 +343,19 @@ const checkScroll = () => {
   }
 }
 
-// 检查是否周一（每周只弹一次）
+// 检查是否周一（每周只弹一次）- 使用北京时间
 const checkMondayPopup = async () => {
   const now = new Date()
-  const dayOfWeek = now.getDay()
+  // 转换为北京时间
+  const beijingDateStr = now.toLocaleString('en-CA', { timeZone: 'Asia/Shanghai' })
+  const beijingDate = new Date(beijingDateStr.replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3T00:00:00+08:00'))
+  const dayOfWeek = beijingDate.getDay()
   
   if (dayOfWeek !== 1) return
   
-  // 获取本周一日期作为key
-  const weekStart = new Date(now)
-  weekStart.setDate(now.getDate() - dayOfWeek + 1)
+  // 获取本周一日期作为key（北京时间）
+  const weekStart = new Date(beijingDate)
+  weekStart.setDate(beijingDate.getDate() - dayOfWeek + 1)
   const weekKey = 'report_popup_' + weekStart.toISOString().split('T')[0]
   
   // 检查是否已弹过
