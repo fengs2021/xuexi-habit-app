@@ -16,9 +16,13 @@ let timer = null
 const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
 
 const updateTime = () => {
-  // 使用北京时间（避免浏览器本地时区差异）
   const now = new Date()
-  const beijingDate = new Date(now.toLocaleString('en-CA', { timeZone: 'Asia/Shanghai' }).replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3T00:00:00+08:00'))
+  // 正确获取北京时间（避免 en-CA 12小时制问题）
+  const dateFtd = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' })
+  const timeFtd = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  const dateStrLocal = dateFtd.format(now)
+  const timeStrLocal = timeFtd.format(now)
+  const beijingDate = new Date(dateStrLocal + 'T' + timeStrLocal + ':00+08:00')
   dateStr.value = (beijingDate.getMonth() + 1) + '月' + beijingDate.getDate() + '日 ' + weekdays[beijingDate.getDay()]
   timeStr.value = String(beijingDate.getHours()).padStart(2, '0') + ':' + String(beijingDate.getMinutes()).padStart(2, '0') + ':' + String(beijingDate.getSeconds()).padStart(2, '0')
 }
