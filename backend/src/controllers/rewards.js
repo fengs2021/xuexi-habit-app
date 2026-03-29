@@ -101,61 +101,25 @@ export async function awardRandomSticker(userId, taskType) {
   
   const selectedSticker = availableStickers[Math.floor(Math.random() * availableStickers.length)]
   
-  // 检查用户是否已有该贴纸，已有则重新抽（最多重试20次）
-  let retryCount = 0
-  let finalSticker = selectedSticker
-  while (retryCount < 20) {
-    const existing = await pool.query(
-      'SELECT id FROM user_stickers WHERE user_id = $1 AND sticker_id = $2',
-      [userId, finalSticker.id]
-    )
-    if (existing.rows.length === 0) {
-      break // 抽到新贴纸
-    }
-    // 重新抽取
-    const rand2 = Math.random()
-    let cumulative2 = 0
-    let newRarity = 'N'
-    for (const [rarity, prob] of Object.entries(probabilities)) {
-      cumulative2 += prob
-      if (rand2 <= cumulative2) {
-        newRarity = rarity
-        break
-      }
-    }
-    const poolForRarity = stickersByRarity[newRarity]
-    if (poolForRarity.length === 0) {
-      for (const rarity of ['SR', 'R', 'N']) {
-        if (stickersByRarity[rarity].length > 0) {
-          finalSticker = stickersByRarity[rarity][Math.floor(Math.random() * stickersByRarity[rarity].length)]
-          break
-        }
-      }
-    } else {
-      finalSticker = poolForRarity[Math.floor(Math.random() * poolForRarity.length)]
-    }
-    retryCount++
-  }
-  
-  // 最终检查
-  const existingFinal = await pool.query(
+  // 检查用户是否已有该贴纸
+  const existing = await pool.query(
     'SELECT id FROM user_stickers WHERE user_id = $1 AND sticker_id = $2',
-    [userId, finalSticker.id]
+    [userId, selectedSticker.id]
   )
-  if (existingFinal.rows.length === 0) {
+  if (existing.rows.length === 0) {
     await pool.query(
       'INSERT INTO user_stickers (user_id, sticker_id) VALUES ($1, $2)',
-      [userId, finalSticker.id]
+      [userId, selectedSticker.id]
     )
     return { 
       awarded: true, 
-      stickerId: finalSticker.id, 
-      rarity: finalSticker.rarity,
-      emoji: finalSticker.emoji,
-      name: finalSticker.name
+      stickerId: selectedSticker.id, 
+      rarity: selectedRarity,
+      emoji: selectedSticker.emoji,
+      name: selectedSticker.name
     }
   }
-  return { awarded: false, reason: 'all_owned' }
+  return { awarded: false, reason: 'already_owned' }
   } catch (error) {
     console.error('awardRandomSticker error:', error)
     return { awarded: false, error: error.message }
