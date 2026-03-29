@@ -123,7 +123,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showSuccessToast } from 'vant'
-import { getSubjects, createRecord, createRecordWithPhotos, ocrIdentify, batchCreateQuestions } from '@/api/study'
+import { getSubjects, createRecord, ocrIdentify, batchCreateQuestions } from '@/api/study'
 
 const router = useRouter()
 

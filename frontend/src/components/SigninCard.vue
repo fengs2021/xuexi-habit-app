@@ -83,9 +83,12 @@ const nextRewardDay = computed(() => (signinInfo.value.streakDays % 7) + 1)
 const calendarDays = computed(() => {
   // 使用北京时间
   const now = new Date()
-  const today = new Date(now.toLocaleString('en-CA', { timeZone: 'Asia/Shanghai' }).replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3T00:00:00+08:00'))
-  const year = today.getFullYear()
-  const month = today.getMonth()
+  const beijingStr = now.toLocaleString('en-CA', { timeZone: 'Asia/Shanghai' })
+  const [yStr, mStr, dStr] = beijingStr.split(' ')[0].split('-')
+  const year = parseInt(yStr)
+  const month = parseInt(mStr) - 1
+  const day = parseInt(dStr)
+  const today = new Date(year, month, day)
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const todayDate = today.getDate()
   
@@ -95,15 +98,13 @@ const calendarDays = computed(() => {
   const startDay = Math.max(1, todayDate - 2)
   const endDay = Math.min(daysInMonth, todayDate + 4)
   
-  const todayStr = today.toISOString().split('T')[0]
+  const todayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   const checkedSet = new Set(signinInfo.value.monthDays.map(d => {
-    const date = new Date(year, month, d)
-    return date.toISOString().split('T')[0]
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
   }))
   
   for (let d = startDay; d <= endDay; d++) {
-    const date = new Date(year, month, d)
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
     const isToday = d === todayDate
     
     days.push({

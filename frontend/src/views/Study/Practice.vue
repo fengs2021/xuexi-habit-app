@@ -160,6 +160,8 @@ const selectedSubjectName = computed(() => {
 })
 const subjectColumns = computed(() =>
   subjects.value.map(s => ({ text: s.icon + ' ' + s.name, value: s.id }))
+)
+
 const getTypeName = (type) => {
   const map = { choice: '选择题', truefalse: '判断题', fill: '填空题', application: '应用题', blank: '简答题' }
   return map[type] || '题目'
