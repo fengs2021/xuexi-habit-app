@@ -446,8 +446,7 @@ export async function approveTaskLog(ctx) {
         const { checkAndAwardAchievements } = rewardsModule
         newAchievements = await checkAndAwardAchievements(log.user_id)
       } catch (e) {
-        awardError = e
-        console.error('Award error:', e)
+        console.error('Achievement award error:', e)
       }
     }
     
