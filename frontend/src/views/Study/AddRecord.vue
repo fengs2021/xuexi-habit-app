@@ -186,8 +186,15 @@ const deletePhoto = (idx) => {
 }
 
 const afterRead = (file) => {
-  // 文件读取完成后的回调
-  console.log('文件已选择:', file.file.name)
+  // 文件读取完成后，转换为 base64 存储
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    // base64 数据保存到 content 字段
+    file.content = e.target.result
+    // 清空 blob URL，用 content 代替
+    delete file.url
+  }
+  reader.readAsDataURL(file.file)
 }
 
 const getTypeName = (type) => {
@@ -241,8 +248,8 @@ const onSubmit = async () => {
   submitLoading.value = true
   try {
     const photoUrls = formData.value.photos
-      .filter(p => p.url)
-      .map(p => p.url)
+      .filter(p => p.content)
+      .map(p => p.content)
 
     await createRecord({
       subject_id: formData.value.subjectId,
@@ -271,8 +278,8 @@ const submitWithQuestions = async () => {
   try {
     // 先创建记录
     const photoUrls = formData.value.photos
-      .filter(p => p.url)
-      .map(p => p.url)
+      .filter(p => p.content)
+      .map(p => p.content)
 
     const recordRes = await createRecord({
       subject_id: formData.value.subjectId,
