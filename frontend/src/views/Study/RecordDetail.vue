@@ -101,7 +101,11 @@ const statusText = computed(() => {
 
 const photos = computed(() => {
   if (!record.value?.photos) return []
-  return record.value.photos.split(',').filter(p => p.trim())
+  if (Array.isArray(record.value.photos)) return record.value.photos
+  if (typeof record.value.photos === 'string') {
+    return record.value.photos.split(',').filter(p => p.trim())
+  }
+  return []
 })
 
 const loadRecord = async () => {
