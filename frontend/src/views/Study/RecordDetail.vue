@@ -1,6 +1,10 @@
 <template>
   <div class="record-detail-page">
-    <van-nav-bar title="学习记录详情" left-text="返回" left-arrow @click-left="$router.back()" />
+    <van-nav-bar title="学习记录详情" left-text="返回" left-arrow @click-left="$router.back()">
+      <template #right>
+        <van-icon name="delete-o" size="20" @click="onDelete" />
+      </template>
+    </van-nav-bar>
 
     <van-loading v-if="loading" class="loading" />
     
@@ -78,8 +82,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showToast, showSuccessToast, showFailToast, ImagePreview } from 'vant'
-import { getRecord, updateRecord } from '@/api/study'
+import { showToast, showSuccessToast, showFailToast, showConfirmDialog, ImagePreview } from 'vant'
+import { getRecord, updateRecord, deleteRecord } from '@/api/study'
 import { useUserStore } from '@/store/modules/user'
 
 const route = useRoute()
@@ -157,6 +161,25 @@ const reject = async () => {
     record.value.status = 'rejected'
   } catch (e) {
     showFailToast('操作失败')
+  }
+}
+
+const onDelete = async () => {
+  try {
+    await showConfirmDialog({
+      title: '确认删除',
+      message: '确定要删除这条学习记录吗？删除后无法恢复。'
+    })
+  } catch {
+    return // 用户取消
+  }
+  
+  try {
+    await deleteRecord(record.value.id)
+    showSuccessToast('删除成功')
+    router.back()
+  } catch (e) {
+    showFailToast('删除失败')
   }
 }
 
