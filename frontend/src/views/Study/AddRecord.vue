@@ -40,12 +40,20 @@
             :after-read="afterRead"
             multiple
             capture="camera"
+            @delete="onPhotoDelete"
           >
             <div class="upload-btn">
               <van-icon name="plus" size="32" />
               <span>点击拍照</span>
             </div>
           </van-uploader>
+          <!-- 照片预览带删除按钮 -->
+          <div class="photo-preview-list" v-if="formData.photos.length > 0">
+            <div class="photo-preview-item" v-for="(photo, idx) in formData.photos" :key="idx">
+              <img :src="photo.url || photo.content" />
+              <van-icon name="cross" class="delete-btn" @click.stop="deletePhoto(idx)" />
+            </div>
+          </div>
         </div>
 
         <!-- OCR 按钮 -->
@@ -166,6 +174,15 @@ const onSubjectConfirm = ({ selectedOptions }) => {
 const onDateConfirm = ({ selectedValues }) => {
   formData.value.recordDate = selectedValues.join('-')
   showDatePicker.value = false
+}
+
+const onPhotoDelete = (file) => {
+  // van-uploader 自带删除，会自动更新 formData.photos
+  console.log('删除照片:', file.file?.name)
+}
+
+const deletePhoto = (idx) => {
+  formData.value.photos.splice(idx, 1)
 }
 
 const afterRead = (file) => {
@@ -339,6 +356,43 @@ onMounted(() => {
   justify-content: center;
   color: #999;
   font-size: 12px;
+}
+
+.photo-preview-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.photo-preview-item {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.photo-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-preview-item .delete-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
 }
 
 .ocr-tip {
