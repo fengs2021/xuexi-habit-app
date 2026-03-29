@@ -422,9 +422,7 @@ export async function approveTaskLog(ctx) {
       [approved ? 'approved' : 'rejected', id]
     )
     
-    let stickerResult = null
     let newAchievements = []
-    let awardError = null
     
     if (approved) {
       const starsEarned = log.stars_earned || 1
@@ -442,19 +440,14 @@ export async function approveTaskLog(ctx) {
         return
       }
       
-      // 发放贴纸和成就奖励
+      // 成就奖励（贴纸在学生完成任务时已发放）
       try {
         const rewardsModule = await import('./rewards.js')
-        const { awardRandomSticker, checkAndAwardAchievements } = rewardsModule
-        stickerResult = await awardRandomSticker(log.user_id, taskType || 'daily')
+        const { checkAndAwardAchievements } = rewardsModule
         newAchievements = await checkAndAwardAchievements(log.user_id)
       } catch (e) {
         awardError = e
         console.error('Award error:', e)
-        // 奖励发放失败，但星星已发。回滚星星
-        await client.query('ROLLBACK')
-        ctx.body = error(500, '奖励发放失败，请重试')
-        return
       }
     }
     
@@ -462,7 +455,6 @@ export async function approveTaskLog(ctx) {
     ctx.body = success({ 
       message: approved ? '已批准' : '已拒绝',
       starsAdded: approved ? (log.stars_earned || 1) : 0,
-      sticker: stickerResult,
       newAchievements: newAchievements
     })
   } catch (err) {
