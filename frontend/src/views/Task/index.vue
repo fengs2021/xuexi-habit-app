@@ -218,7 +218,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/store/modules/user'
-import { getTasks, createTask as createTaskApi, updateTask as updateTaskApi, deleteTask as deleteTaskApi, completeTask, getStudentTaskStatus, getCycleTaskStatus, approveTaskLog as approveTaskLogApi, deductStars } from '@/api/task'
+import { getTasks, createTask as createTaskApi, updateTask as updateTaskApi, deleteTask as deleteTaskApi, completeTask, getStudentTaskStatus, getCycleTaskStatus, deductStars } from '@/api/task'
 import TaskCard from '@/components/TaskCard.vue'
 
 import { showToast } from 'vant'
