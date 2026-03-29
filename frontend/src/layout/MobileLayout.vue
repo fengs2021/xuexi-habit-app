@@ -231,6 +231,7 @@ const tabBarItems = computed(() => {
   const baseItems = [
     { path: '/dashboard', label: '🏠 首页', icon: 'wap-home-o' },
     { path: '/task', label: '📋 任务', icon: 'orders-o' },
+    { path: '/study', label: '📚 学习', icon: 'book-o' },
     { path: '/statistics', label: '📊 统计', icon: 'chart-trending-o' },
     { path: '/reward', label: '🎁 奖励', icon: 'gift-o' },
     { path: '/family', label: '👨👩👧 家庭', icon: 'friends-o' },

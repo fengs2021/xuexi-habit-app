@@ -2,6 +2,7 @@ import pool from '../config/database.js'
 import { success, error, ErrorCodes } from '../utils/response.js'
 import jwt from 'jsonwebtoken'
 import JWT_SECRET from '../utils/jwt.js'
+import { visionAnalyze } from '../utils/minimax.js'
 
 // 获取当前用户
 async function getUserFromToken(ctx) {
@@ -399,12 +400,84 @@ export async function ocrIdentify(ctx) {
     return
   }
   
-  // TODO: 实现OCR识别
-  // 暂时返回空数据，后续接入MiniMax Vision
-  ctx.body = success({
-    questions: [],
-    message: 'OCR功能待实现'
-  })
+  const { subject_id, photos } = ctx.request.body
+  
+  if (!photos || photos.length === 0) {
+    ctx.body = error(ErrorCodes.PARAM_ERROR, '请提供试卷照片')
+    return
+  }
+  
+  try {
+    // 构建 OCR prompt
+    const prompt = `请分析这张试卷图片，识别出所有题目并返回JSON格式。
+
+要求：
+1. 返回JSON数组，每项包含：question_no(题号), question_type(类型：choice填空/truefalse判断/choice选择题/application应用题), content(题目内容), options(如果是选择题，包含A/B/C/D选项数组), ai_answer(AI推理的答案)
+2. 只返回有效的题目，忽略页眉页脚
+3. 答案尽量准确
+
+返回格式：
+{
+  "questions": [
+    {
+      "question_no": 1,
+      "question_type": "fill",
+      "content": "题目内容",
+      "options": [],
+      "ai_answer": "答案"
+    }
+  ]
+}
+
+请直接返回JSON，不要有其他文字。`
+
+    const questions = []
+    
+    // 逐张图片识别
+    for (const photo of photos) {
+      try {
+        const photoUrl = photo.startsWith('data:') || photo.startsWith('http') 
+          ? photo 
+          : `data:image/jpeg;base64,${photo}`
+        
+        const result = await visionAnalyze(photoUrl, prompt)
+        
+        // 尝试解析 JSON
+        const jsonMatch = result.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0])
+          if (parsed.questions && Array.isArray(parsed.questions)) {
+            questions.push(...parsed.questions)
+          }
+        }
+      } catch (e) {
+        console.error('单张图片识别失败:', e.message)
+      }
+    }
+    
+    // 去重（按题号）
+    const uniqueQuestions = []
+    const seenNos = new Set()
+    for (const q of questions) {
+      if (!seenNos.has(q.question_no)) {
+        seenNos.add(q.question_no)
+        uniqueQuestions.push({
+          ...q,
+          subject_id,
+          options: q.options || []
+        })
+      }
+    }
+    
+    ctx.body = success({
+      questions: uniqueQuestions,
+      count: uniqueQuestions.length,
+      message: `识别完成，共${uniqueQuestions.length}道题目`
+    })
+  } catch (e) {
+    console.error('OCR识别失败:', e)
+    ctx.body = error(500, 'OCR识别失败: ' + e.message)
+  }
 }
 
 // ========== 题目管理 ==========
