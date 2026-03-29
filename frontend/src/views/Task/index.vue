@@ -368,8 +368,8 @@ const deleteTask = async (id) => {
 const handleComplete = async (task) => {
   try {
     const res = await completeTask(task.id)
-    // 显示星星动画
-    showStickerDrop(task, res.sticker)
+    // 显示贴纸掉落弹窗
+    showStickerDrop(task, res.data?.sticker)
     await loadTasks()
   } catch (error) {
     showToast(error.message || '操作失败')
