@@ -438,17 +438,13 @@ export async function ocrIdentify(ctx) {
       try {
         const photoUrl = photo.startsWith('data:') || photo.startsWith('http') 
           ? photo 
-          : `data:image/jpeg;base64,${photo}`
+          : photo
         
         const result = await visionAnalyze(photoUrl, prompt)
         
-        // 尝试解析 JSON
-        const jsonMatch = result.match(/\{[\s\S]*\}/)
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0])
-          if (parsed.questions && Array.isArray(parsed.questions)) {
-            questions.push(...parsed.questions)
-          }
+        // visionAnalyze 返回 JSON 对象
+        if (result && result.questions && Array.isArray(result.questions)) {
+          questions.push(...result.questions)
         }
       } catch (e) {
         console.error('单张图片识别失败:', e.message)

@@ -1,82 +1,97 @@
-import dotenv from 'dotenv'
-dotenv.config()
+import { exec } from 'child_process'
+import { promisify } from 'util'
+import fs from 'fs'
+import path from 'path'
+import os from 'os'
 
-const MINIMAX_API_KEY = process.env.MINIMAX_API_KEY || 'sk-cp-v8YFOz1n_dw-GiW0cq0AWoIkwOLDibbpIYwKkls4b2g-rZcfQTSNlg43uMKJot92jOLgofutfyM8x404Aia6FuoliZWiJ8xshzNM-xYUCTk7mLE1cjQ6Zp8'
-const MINIMAX_API_BASE = process.env.MINIMAX_API_BASE || 'https://api.minimaxi.com'
+const execAsync = promisify(exec)
 
-/**
- * 调用 MiniMax Chat API（支持 Vision 图片输入）
- * @param {string} model - 模型名，如 'MiniMax-Text-01' 或 'abab6.5s-chat'
- * @param {Array} messages - 消息数组，每条消息可以是文本或图片
- * @param {object} options - 其他选项
- */
-export async function chatCompletion(model, messages, options = {}) {
-  const response = await fetch(`${MINIMAX_API_BASE}/v1/text/chatcompletion_v2`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${MINIMAX_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      ...options
-    })
-  })
-  
-  if (!response.ok) {
-    const err = await response.text()
-    throw new Error(`MiniMax API error: ${response.status} - ${err}`)
-  }
-  
-  return response.json()
-}
+const SKILL_PATH = '/root/.openclaw/workspace/skills/minimax-understand-image/scripts/understand_image.py'
 
 /**
- * 使用 Vision 模型分析图片（OCR）
- * @param {string} imageUrlOrBase64 - 图片 URL 或 base64 数据
+ * 使用 MiniMax Vision skill 分析图片
+ * @param {string} imagePathOrUrl - 图片路径或 URL
  * @param {string} prompt - 提问/指令
  * @returns {string} 分析结果文本
  */
-export async function visionAnalyze(imageUrlOrBase64, prompt) {
-  // 构建图片消息
-  const imageContent = imageUrlOrBase64.startsWith('data:') || imageUrlOrBase64.startsWith('http')
-    ? { image_url: imageUrlOrBase64 }
-    : { image_url: `data:image/jpeg;base64,${imageUrlOrBase64}` }
-  
-  const messages = [
+export async function visionAnalyze(imagePathOrUrl, prompt) {
+  try {
+    // 保存图片到临时文件（如果是 base64）
+    let imagePath = imagePathOrUrl
+    
+    if (imagePathOrUrl.startsWith('data:')) {
+      // 是 base64 数据，保存到临时文件
+      const matches = imagePathOrUrl.match(/^data:([^;]+);base64,(.+)$/)
+      if (matches) {
+        const ext = matches[1].includes('png') ? 'png' : 'jpg'
+        const tmpFile = path.join(os.tmpdir(), `ocr_${Date.now()}.${ext}`)
+        fs.writeFileSync(tmpFile, Buffer.from(matches[2], 'base64'))
+        imagePath = tmpFile
+      }
+    } else if (imagePathOrUrl.startsWith('http')) {
+      // 是 URL，下载到临时文件
+      const tmpFile = path.join(os.tmpdir(), `ocr_${Date.now()}.jpg`)
+      const response = await fetch(imagePathOrUrl)
+      const buffer = await response.arrayBuffer()
+      fs.writeFileSync(tmpFile, Buffer.from(buffer))
+      imagePath = tmpFile
+    }
+    
+    // 构建 prompt
+    const ocrPrompt = `请分析这张试卷图片，识别出所有题目并返回JSON格式。
+
+要求：
+1. 返回JSON数组，每项包含：question_no(题号), question_type(类型：choice填空/truefalse判断/choice选择题/application应用题), content(题目内容), options(如果是选择题，包含A/B/C/D选项数组), ai_answer(AI推理的答案)
+2. 只返回有效的题目，忽略页眉页脚
+3. 答案尽量准确
+
+返回格式：
+{
+  "questions": [
     {
-      role: 'user',
-      content: [
-        { type: 'text', text: prompt },
-        { type: 'image', ...imageContent }
-      ]
+      "question_no": 1,
+      "question_type": "fill",
+      "content": "题目内容",
+      "options": [],
+      "ai_answer": "答案"
     }
   ]
-  
-  try {
-    const result = await chatCompletion('MiniMax-Text-01', messages, {
-      max_tokens: 4096
+}
+
+请直接返回JSON，不要有其他文字。`
+
+    // 调用 skill 脚本
+    const cmd = `python3 "${SKILL_PATH}" "${imagePath}" "${ocrPrompt.replace(/"/g, '\\"')}"`
+    
+    const { stdout, stderr } = await execAsync(cmd, {
+      timeout: 120000,
+      maxBuffer: 10 * 1024 * 1024
     })
     
-    if (result.code === 0 && result.choices && result.choices.length > 0) {
-      return result.choices[0].messages[0].text
+    // 清理临时文件
+    if (imagePath !== imagePathOrUrl && fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath)
     }
     
-    // 尝试其他模型
-    const result2 = await chatCompletion('abab6.5s-chat', messages, {
-      max_tokens: 4096
-    })
-    
-    if (result2.code === 0 && result2.choices && result2.choices.length > 0) {
-      return result2.choices[0].messages[0].text
+    if (stderr) {
+      console.error('Vision stderr:', stderr)
     }
     
-    throw new Error(result.message || 'Vision API 返回格式异常')
+    // 解析 JSON 输出
+    const output = stdout.trim()
+    
+    // 提取 JSON
+    const jsonMatch = output.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0])
+    }
+    
+    throw new Error('无法解析识别结果')
+    
   } catch (e) {
     console.error('Vision analyze error:', e)
-    throw e
+    throw new Error('OCR识别失败: ' + e.message)
   }
 }
 
-export default { chatCompletion, visionAnalyze }
+export default { visionAnalyze }
