@@ -44,7 +44,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { showToast, showSuccessToast } from 'vant'
+import { showToast, showSuccessToast, showConfirmDialog } from 'vant'
 import { getSubjects, createSubject, updateSubject, deleteSubject } from '@/api/study'
 
 const subjects = ref([])
@@ -87,6 +87,14 @@ const saveSubject = async () => {
 }
 
 const onDelete = async (s) => {
+  try {
+    await showConfirmDialog({
+      title: '确认删除',
+      message: `确定要删除科目"${s.name}"吗？相关学习记录中的科目信息不会删除。`
+    })
+  } catch {
+    return // 用户取消
+  }
   try {
     await deleteSubject(s.id)
     showSuccessToast('已删除')
