@@ -99,6 +99,12 @@ const asyncRoutes = [
         name: 'StudySubjects',
         component: () => import('@/views/Study/Subjects.vue'),
         meta: { title: '科目管理', icon: 'setting-o', roles: [ROLES.ADMIN], hidden: true }
+      },
+      {
+        path: 'study/record/:id',
+        name: 'StudyRecordDetail',
+        component: () => import('@/views/Study/RecordDetail.vue'),
+        meta: { title: '记录详情', hidden: true }
       }
     ]
   },
