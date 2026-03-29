@@ -114,7 +114,7 @@ export async function awardRandomSticker(userId, taskType) {
     return { 
       awarded: true, 
       stickerId: selectedSticker.id, 
-      rarity: selectedRarity,
+      rarity: selectedSticker.rarity,
       emoji: selectedSticker.emoji,
       name: selectedSticker.name
     }
