@@ -62,6 +62,7 @@ export function batchCreateQuestions(data) {
 
 // ========== 错题本 ==========
 export function getWrongQuestions(params) {
+  console.log('[DEBUG] getWrongQuestions API called with:', params)
   return request({ url: '/study/wrong-questions', method: 'GET', params })
 }
 

@@ -106,7 +106,7 @@ const activeSubject = ref('')
 const loadSubjects = async () => {
   try {
     const res = await getSubjects()
-    subjects.value = res.data || []
+    subjects.value = res || []
   } catch (e) {
     console.error('加载科目失败:', e)
   }
@@ -119,7 +119,7 @@ const loadRecords = async () => {
       params.subject_id = activeSubject.value
     }
     const res = await getRecords(params)
-    records.value = res.data || []
+    records.value = res || []
   } catch (e) {
     console.error('加载学习记录失败:', e)
   }

@@ -685,29 +685,24 @@ export async function getWrongQuestions(ctx) {
   
   try {
     let where = 'WHERE wq.user_id = $1'
-    const values = []
-    let idx = 1
-    
-    // 家长可以看孩子的错题
-    if (user.role === 'child') {
-      values.push(user.id)
-    } else if (user_id) {
-      values.push(user_id)
-    } else {
-      values.push(user.id)
-    }
+    const values = [user.id]
+    let paramCount = 1  // 记录已使用的占位符数量
     
     if (subject_id) {
-      where += ` AND sq.subject_id = $${idx++}`
+      paramCount++
+      where += ` AND sq.subject_id = $${paramCount}`
       values.push(subject_id)
     }
     
-    if (mastered !== undefined) {
-      where += ` AND wq.mastered = $${idx++}`
+    if (mastered !== undefined && mastered !== "") {
+      paramCount++
+      where += ` AND wq.mastered = $${paramCount}`
       values.push(mastered === 'true')
     }
     
-    values.push(parseInt(limit), offset)
+    // limit 和 offset 使用剩余的占位符
+    const limitVal = parseInt(limit) || 20
+    const offsetVal = parseInt(offset) || 0
     
     const result = await pool.query(
       `SELECT wq.id, wq.times_wrong, wq.times_reviewed, wq.mastered, wq.last_reviewed, wq.created_at,
@@ -719,8 +714,8 @@ export async function getWrongQuestions(ctx) {
        JOIN study_subjects ss ON sq.subject_id = ss.id
        ${where}
        ORDER BY wq.created_at DESC
-       LIMIT $${idx++} OFFSET $${idx}`,
-      values
+       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`,
+      [...values, limitVal, offsetVal]
     )
     
     ctx.body = success(result.rows)
@@ -784,7 +779,7 @@ export async function updateWrongQuestion(ctx) {
     const values = []
     let idx = 1
     
-    if (mastered !== undefined) {
+    if (mastered !== undefined && mastered !== "") {
       updates.push(`mastered = $${idx++}`)
       values.push(mastered)
       if (mastered) {

@@ -170,7 +170,7 @@ const getTypeName = (type) => {
 const loadSubjects = async () => {
   try {
     const res = await getSubjects()
-    subjects.value = res.data || []
+    subjects.value = res || []
     if (subjects.value.length > 0) {
       selectedSubject.value = subjects.value[0].id
     }
@@ -215,11 +215,11 @@ const beginPractice = async () => {
       mode: practiceMode.value,
       count: questionCount.value
     })
-    if (!res.data || res.data.questions.length === 0) {
+    if (!res || res.questions.length === 0) {
       showToast('暂无可练习的题目')
       return
     }
-    questions.value = res.data.questions
+    questions.value = res.questions
     currentIndex.value = 0
     answers.value = {}
     textAnswer.value = ''
@@ -244,7 +244,7 @@ const submitPractice = async () => {
       questions: questions.value,
       answers: answers.value
     })
-    result.value = res.data || {}
+    result.value = res || {}
     showResult.value = true
   } catch (e) {
     showToast('提交失败')

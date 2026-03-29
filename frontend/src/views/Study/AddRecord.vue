@@ -151,7 +151,7 @@ const subjectColumns = computed(() =>
 const loadSubjects = async () => {
   try {
     const res = await getSubjects()
-    subjects.value = res.data || []
+    subjects.value = res || []
   } catch (e) {
     console.error('加载科目失败:', e)
   }
@@ -201,11 +201,11 @@ const doOcr = async () => {
       subject_id: formData.value.subjectId,
       photos: photoPaths
     })
-    if (res.data && res.data.questions) {
-      ocrResult.value = res.data.questions
+    if (res && res.questions) {
+      ocrResult.value = res.questions
       showSuccessToast('识别完成！请核对答案并校正')
     } else {
-      showToast(res.data?.message || 'OCR功能待实现')
+      showToast(res?.message || 'OCR功能待实现')
     }
   } catch (e) {
     showToast('识别失败，请重试')

@@ -54,14 +54,19 @@ const wrongList = ref([])
 const filterMastered = ref('')
 
 const loadWrongQuestions = async () => {
+  console.log('[DEBUG] loadWrongQuestions called')
   try {
     const params = {}
     if (filterMastered.value !== '') {
       params.mastered = filterMastered.value
     }
-    const res = await getWrongQuestions(params)
-    wrongList.value = res.data || []
+    console.log('[DEBUG] calling getWrongQuestions with params:', params)
+    const data = await getWrongQuestions(params)
+    console.log('[DEBUG] getWrongQuestions response:', data)
+    wrongList.value = data || []
+    console.log('[DEBUG] wrongList.value:', wrongList.value)
   } catch (e) {
+    console.error('[DEBUG] loadWrongQuestions error:', e)
     showToast('加载失败')
   }
 }

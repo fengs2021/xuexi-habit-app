@@ -82,7 +82,7 @@ const loadQuestions = async () => {
     if (filters.value.type) params.question_type = filters.value.type
     if (filters.value.search) params.search = filters.value.search
     const res = await getQuestions(params)
-    questions.value = res.data?.questions || []
+    questions.value = res?.questions || []
   } catch (e) {
     showToast('加载失败')
   }
@@ -91,7 +91,7 @@ const loadQuestions = async () => {
 const loadSubjects = async () => {
   try {
     const res = await getSubjects()
-    subjects.value = res.data || []
+    subjects.value = res || []
   } catch (e) {}
 }
 

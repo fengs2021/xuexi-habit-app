@@ -55,10 +55,15 @@ const editing = ref({ id: '', name: '', icon: '📚', color: '#4A90D9' })
 const defaultColors = ['#4A90D9', '#07c160', '#ff976a', '#7232dd', '#ee0a24', '#1989fa']
 
 const loadSubjects = async () => {
+  console.log('[DEBUG] loadSubjects called')
   try {
-    const res = await getSubjects()
-    subjects.value = res.data || []
+    console.log('[DEBUG] calling getSubjects API')
+    const data = await getSubjects()
+    console.log('[DEBUG] getSubjects response:', data)
+    subjects.value = data || []
+    console.log('[DEBUG] subjects.value:', subjects.value)
   } catch (e) {
+    console.error('[DEBUG] loadSubjects error:', e)
     showToast('加载失败')
   }
 }
