@@ -171,7 +171,7 @@
     </div>
 
     <!-- 创建奖励弹窗 -->
-    <van-dialog v-model:show="showCreate" title="创建奖励" show-cancel-button @confirm="createReward">
+    <van-dialog v-model:show="showCreate" title="创建奖励" show-cancel-button close-on-click-overlay @confirm="createReward">
       <van-form>
         <van-cell-group inset>
           <van-field v-model="newReward.title" label="奖励名称" placeholder="例如：去游乐场" />
