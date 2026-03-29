@@ -58,21 +58,6 @@
         </van-cell-group>
       </div>
 
-      <!-- 审核信息 -->
-      <van-cell-group v-if="record.status !== 'pending'" inset class="approval-section">
-        <van-cell title="审核结果">
-          <van-tag :type="record.status === 'approved' ? 'success' : 'danger'">
-            {{ record.status === 'approved' ? '已通过' : '已拒绝' }}
-          </van-tag>
-        </van-cell>
-        <van-cell v-if="record.review_note" title="审核备注" :value="record.review_note" />
-      </van-cell-group>
-
-      <!-- 操作按钮 -->
-      <div v-if="record.status === 'pending' && userStore.isAdmin" class="action-buttons">
-        <van-button type="success" block @click="approve">✅ 通过</van-button>
-        <van-button type="danger" plain block @click="reject">❌ 拒绝</van-button>
-      </div>
     </div>
 
     <van-empty v-else description="记录不存在" />
@@ -96,11 +81,9 @@ const questions = ref([])
 
 const statusText = computed(() => {
   switch (record.value?.status) {
-    case 'pending': return '待审核'
-    case 'approved': return '已通过'
-    case 'rejected': return '已拒绝'
     case 'draft': return '草稿'
-    default: return record.value?.status || ''
+    case 'approved': return '已完成'
+    default: return '已完成'
   }
 })
 
@@ -143,26 +126,6 @@ const previewImage = (index) => {
     images: photos.value,
     startPosition: index
   })
-}
-
-const approve = async () => {
-  try {
-    await updateRecord(record.value.id, { status: 'approved' })
-    showSuccessToast('已通过')
-    record.value.status = 'approved'
-  } catch (e) {
-    showFailToast('操作失败')
-  }
-}
-
-const reject = async () => {
-  try {
-    await updateRecord(record.value.id, { status: 'rejected' })
-    showSuccessToast('已拒绝')
-    record.value.status = 'rejected'
-  } catch (e) {
-    showFailToast('操作失败')
-  }
 }
 
 const onDelete = async () => {
