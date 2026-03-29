@@ -81,7 +81,9 @@ const rewards = [1, 1, 2, 2, 2, 3, 5]
 const nextRewardDay = computed(() => (signinInfo.value.streakDays % 7) + 1)
 
 const calendarDays = computed(() => {
-  const today = new Date()
+  // 使用北京时间
+  const now = new Date()
+  const today = new Date(now.toLocaleString('en-CA', { timeZone: 'Asia/Shanghai' }).replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3T00:00:00+08:00'))
   const year = today.getFullYear()
   const month = today.getMonth()
   const daysInMonth = new Date(year, month + 1, 0).getDate()

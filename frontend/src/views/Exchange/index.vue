@@ -336,8 +336,12 @@ const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四
 
 const formatDateTime = (time) => {
   if (!time) return ''
+  // 使用北京时间格式化（避免浏览器本地时区差异）
   const d = new Date(time)
-  return d.getMonth() + 1 + '月' + d.getDate() + '日 ' + weekdays[d.getDay()] + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+  const parts = d.toLocaleString('en-GB', { timeZone: 'Asia/Shanghai', hour12: false }).split(/[\s:]/)
+  const [day, month, year, hours, minutes] = parts
+  const weekday = weekdays[new Date(time).getDay()]
+  return `${month}月${day}日 ${weekday} ${hours}:${minutes}`
 }
 
 onMounted(() => {

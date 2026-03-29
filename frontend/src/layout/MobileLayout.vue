@@ -213,8 +213,9 @@ const checkNewRewards = async () => {
 
 const updateTime = () => {
   const now = new Date()
-  dateStr.value = (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + weekdays[now.getDay()]
-  timeStr.value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0')
+  const beijingDate = new Date(now.toLocaleString('en-CA', { timeZone: 'Asia/Shanghai' }).replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3T00:00:00+08:00'))
+  dateStr.value = (beijingDate.getMonth() + 1) + '月' + beijingDate.getDate() + '日 ' + weekdays[beijingDate.getDay()]
+  timeStr.value = String(beijingDate.getHours()).padStart(2, '0') + ':' + String(beijingDate.getMinutes()).padStart(2, '0')
 }
 
 const totalStars = computed(() => {
