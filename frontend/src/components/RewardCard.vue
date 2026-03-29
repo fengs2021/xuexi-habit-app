@@ -5,6 +5,16 @@
       <p class="cost">{{ reward.starCost || reward.star_cost }} ★</p>
     </div>
     <div class="reward-actions">
+      <!-- 管理员编辑按钮 -->
+      <van-button
+        v-if="showEdit && userStore.isAdmin"
+        size="small"
+        type="default"
+        plain
+        @click.stop="$emit('edit', reward)"
+      >
+        编辑
+      </van-button>
       <van-button
         v-if="showExchange && userStore.isChild && !isCurrentTarget"
         size="small"
@@ -43,9 +53,10 @@ import { showToast } from 'vant'
 const props = defineProps({
   reward: Object,
   loading: { type: Boolean, default: false },
-  showExchange: { type: Boolean, default: true }
+  showExchange: { type: Boolean, default: true },
+  showEdit: { type: Boolean, default: false }
 })
-const emit = defineEmits(['exchange', 'setTarget', 'clearTarget'])
+const emit = defineEmits(['exchange', 'setTarget', 'clearTarget', 'edit'])
 
 const userStore = useUserStore()
 const isCurrentTarget = computed(() => userStore.targetReward?.id === props.reward.id)

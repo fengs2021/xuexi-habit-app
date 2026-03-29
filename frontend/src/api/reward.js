@@ -8,6 +8,10 @@ export function createReward(data) {
   return request({ url: '/rewards', method: 'POST', data })
 }
 
+export function updateReward(data) {
+  return request({ url: '/rewards/' + data.id, method: 'PUT', data })
+}
+
 export function createExchange(data) {
   return request({ url: '/exchanges', method: 'POST', data })
 }
