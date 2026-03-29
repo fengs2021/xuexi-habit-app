@@ -80,7 +80,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast, showSuccessToast, showFailToast, ImagePreview } from 'vant'
 import { getRecord, updateRecord } from '@/api/study'
-import { useUserStore } from '@/stores/user'
+import { useUserStore } from '@/store/modules/user'
 
 const route = useRoute()
 const router = useRouter()
