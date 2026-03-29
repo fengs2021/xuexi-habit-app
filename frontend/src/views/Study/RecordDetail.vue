@@ -112,6 +112,12 @@ const loadRecord = async () => {
   try {
     loading.value = true
     const id = route.params.id
+    console.log('加载记录, ID:', id)
+    if (!id) {
+      showToast('记录ID不存在')
+      router.back()
+      return
+    }
     const data = await getRecord(id)
     record.value = data
     
@@ -120,7 +126,7 @@ const loadRecord = async () => {
       // 可以在这里加载题目详情
     }
   } catch (e) {
-    showToast('加载失败')
+    showToast('加载失败: ' + (e.message || '学习记录不存在'))
     console.error(e)
   } finally {
     loading.value = false
