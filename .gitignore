@@ -49,3 +49,4 @@ dump.rdb
 
 # Nginx html (build output)
 nginx/html/
+backups/
