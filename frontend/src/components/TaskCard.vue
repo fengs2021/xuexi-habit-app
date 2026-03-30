@@ -108,11 +108,8 @@ const complete = async () => {
   border-color: var(--theme-primary);
 }
 .task-card:active {
-  transform: scale(0.94);
-  box-shadow: 
-    4px 4px 8px rgba(0, 0, 0, 0.18),
-    2px 2px 4px rgba(0, 0, 0, 0.1),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.8);
+  /* 禁止缩放，避免子元素位置偏移 */
+  transform: none;
 }
 .task-content {
   flex: 1;
