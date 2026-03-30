@@ -56,25 +56,14 @@ export async function createExchange(ctx) {
     
     // 获取用户当前积分
     const pointsInfo = await getPointsInfo(user.id)
-    const currentStars = pointsInfo.currentBalance || 0
+    const currentStars = pointsInfo.balance || 0
     
     if (currentStars < reward.star_cost) {
       ctx.body = error(400, '积分不足')
       return
     }
     
-    // 扣除积分
-    const deductResult = await subtractPoints(user.id, reward.star_cost, PointType.EXCHANGE, {
-      sourceId: rewardId,
-      description: `兑换奖励：${reward.title}`
-    })
-    
-    if (!deductResult.success) {
-      ctx.body = error(400, deductResult.error || '积分扣除失败')
-      return
-    }
-    
-    // 创建兑换记录（待审批）
+    // 创建兑换记录（待审批）- 暂不扣除积分，等审批通过后再扣
     const exchangeResult = await pool.query(
       'INSERT INTO exchange_logs (user_id, reward_id, stars_spent, status) VALUES ($1, $2, $3, $4) RETURNING *',
       [user.id, rewardId, reward.star_cost, 'pending']

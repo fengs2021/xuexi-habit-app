@@ -62,14 +62,24 @@ const userStore = useUserStore()
 const isCurrentTarget = computed(() => userStore.targetReward?.id === props.reward.id)
 
 const handleExchange = () => {
+  console.log('【调试】handleExchange 被调用', {
+    reward: props.reward,
+    userInfo: userStore.userInfo,
+    stars: userStore.userInfo?.stars,
+    cost: props.reward.starCost || props.reward.star_cost,
+    showExchange: props.showExchange,
+    isChild: userStore.isChild
+  })
   const cost = props.reward.starCost || props.reward.star_cost
   const currentStars = userStore.userInfo?.stars || 0
   
   if (currentStars < cost) {
+    console.log('【调试】积分不足', { currentStars, cost })
     showToast('分数不够，继续努力')
     return
   }
   
+  console.log('【调试】emit exchange', props.reward.id)
   emit('exchange', props.reward.id)
 }
 </script>
@@ -91,11 +101,8 @@ const handleExchange = () => {
   transition: transform var(--press-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .reward-card:active {
-  transform: scale(0.95);
-  box-shadow: 
-    4px 4px 8px rgba(0, 0, 0, 0.18),
-    2px 2px 4px rgba(0, 0, 0, 0.1),
-    inset -3px -3px 7px rgba(255, 255, 255, 0.8);
+  /* 禁止缩放，避免子元素位置偏移 */
+  transform: none;
 }
 .reward-info h3 {
   margin: 0 0 8px 0;
