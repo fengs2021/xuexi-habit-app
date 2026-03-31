@@ -11,15 +11,15 @@
       <div class="pet-name">{{ petNames[currentPet] || '小宠物' }}</div>
     </div>
     
-    <van-popup v-model:show="showPicker" position="bottom" round :overlay="true" close-on-click-overlay style="max-height: 80vh; z-index: 2001;">
-      <div class="pet-picker">
+    <van-popup v-model:show="showPicker" position="bottom" round :overlay="true" close-on-click-overlay style="max-height: 80vh; z-index: 9999;">
+      <div class="pet-picker" @click.stop="e => { console.log('[DEBUG] pet-picker clicked', e.target) }" style="position:relative;z-index:10000;background:#fff;">
         <div class="picker-title">🎀 选择你的宠物</div>
         
         <!-- 卡通宠物 -->
         <div v-if="unlockedImagePets.length > 0" class="pet-section">
           <div class="pet-section-title">🌟 卡通宠物</div>
           <div class="pet-grid image-grid">
-            <div v-for="pet in unlockedImagePets" :key="pet.id" class="pet-option pet-image-option" :class="{ 'selected': currentPet === pet.filename }" @click="selectPet(pet.filename)">
+            <div v-for="pet in unlockedImagePets" :key="pet.id" class="pet-option pet-image-option" :class="{ 'selected': currentPet === pet.filename }" @click.stop="selectPet(pet.filename)">
               <img :src="pet.url" class="pet-thumb" />
               <div class="pet-thumb-name">{{ pet.name }}</div>
             </div>
@@ -30,7 +30,7 @@
         <div class="pet-section">
           <div class="pet-section-title">😊 表情宠物</div>
           <div class="pet-grid">
-            <div v-for="pet in petOptions" :key="pet" class="pet-option" :class="{ 'selected': currentPet === pet }" @click="selectPet(pet)">
+            <div v-for="pet in petOptions" :key="pet" class="pet-option" :class="{ 'selected': currentPet === pet }" @click.stop="selectPet(pet)">
               <span class="pet-emoji-small">{{ pet }}</span>
             </div>
           </div>
@@ -52,6 +52,14 @@ import { getAvatars } from '@/api/avatar'
 import { get as getEmojiPets } from '@/api/emojiPets'
 
 const userStore = useUserStore()
+// === DEBUG MODE ===
+const debugMode = ref(true)
+const touchEventLog = ref([])
+const logEvent = (name, e) => {
+  touchEventLog.value.push(`${name}: ${Date.now()}`)
+  if (touchEventLog.value.length > 10) touchEventLog.value.shift()
+  console.log('[PetCompanion DEBUG]', name, 'at', Date.now(), e)
+}
 const petWrapper = ref(null)
 const showBubble = ref(false)
 const isBouncing = ref(false)
@@ -125,12 +133,14 @@ const handleClick = () => {
 }
 
 const handleTouchStart = (e) => {
+  logEvent('touchstart', e)
   pressTimer.value = setTimeout(() => {
     showPicker.value = true
   }, 500)
 }
 
 const handleTouchEnd = (e) => {
+  logEvent('touchend', e)
   if (pressTimer.value) {
     clearTimeout(pressTimer.value)
     pressTimer.value = null
@@ -138,12 +148,14 @@ const handleTouchEnd = (e) => {
 }
 
 const handleMouseDown = (e) => {
+  logEvent('mousedown', e)
   pressTimer.value = setTimeout(() => {
     showPicker.value = true
   }, 500)
 }
 
 const handleMouseUp = (e) => {
+  logEvent('mouseup', e)
   if (pressTimer.value) {
     clearTimeout(pressTimer.value)
     pressTimer.value = null
@@ -193,6 +205,7 @@ watch(() => userStore.userInfo?.id, (newId) => {
 
 // 每次打开 picker 都刷新头像列表
 watch(() => showPicker.value, (val) => {
+  console.log('[PetCompanion DEBUG] showPicker changed to:', val)
   if (val) loadPetData()
 })
 
